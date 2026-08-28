@@ -1,7 +1,15 @@
 import axios from 'axios'
 
+/**
+ * URL base del backend. Se define en VITE_API_URL (sin la parte /api), por ejemplo
+ * https://api.abrigar.org. Si no se define, se usa la ruta relativa /api, que en
+ * desarrollo resuelve el proxy de Vite y en producción sirve si el front y el back
+ * están detrás del mismo dominio.
+ */
+const apiBaseUrl = `${(import.meta.env.VITE_API_URL ?? '').replace(/\/+$/, '')}/api`
+
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: apiBaseUrl,
 })
 
 api.interceptors.request.use((config) => {
