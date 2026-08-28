@@ -1,0 +1,105 @@
+:root {
+  /* Paleta del comité ABRIGAR. */
+  --navy: #1f2a44;
+  --navy-deep: #16203a;
+  --teal: #2e6b63;
+  --teal-deep: #23544e;
+  --terracotta: #c45a3c;
+  --terracotta-deep: #a2452c;
+  --gold: #e0b14c;
+  --cream: #f2e9d8;
+
+  --paper: var(--cream);
+  --paper-deep: #eadfc9;
+  --card: #fdf8ee;
+  --ink: var(--navy);
+  --ink-soft: #5b6478;
+  --line: #ddd0b8;
+  --forest: var(--teal);
+  --forest-soft: #3a8078;
+
+  --alert: #b42318;
+  --alert-bg: #fbe3de;
+  --ok: #2e6b63;
+  --ok-bg: #e2efec;
+  --warn: #96701c;
+  --warn-bg: #fbf0d6;
+  --info: var(--navy);
+  --info-bg: #e4e8f0;
+
+  --shadow: 0 18px 40px rgba(31, 42, 68, 0.1);
+  --radius: 18px;
+  --display: 'Oswald', 'Arial Narrow', sans-serif;
+  --sans: 'Montserrat', system-ui, sans-serif;
+  --script: 'Caveat', cursive;
+
+  /* Trama de tela: dos rejillas finas cruzadas más un punteado de hilo. */
+  --fabric:
+    repeating-linear-gradient(
+      90deg,
+      rgba(31, 42, 68, 0.045) 0 1px,
+      transparent 1px 4px
+    ),
+    repeating-linear-gradient(
+      0deg,
+      rgba(31, 42, 68, 0.045) 0 1px,
+      transparent 1px 4px
+    ),
+    radial-gradient(circle at 1px 1px, rgba(196, 90, 60, 0.06) 1px, transparent 0);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+}
+
+html,
+body {
+  min-height: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  color: var(--ink);
+  background-color: var(--paper);
+  background-image: var(--fabric);
+  background-size: 4px 4px, 4px 4px, 16px 16px;
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.55;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  font-size: 16px;
+  color: inherit;
+  /* Ningún control puede desbordar su contenedor por su ancho intrínseco. */
+  max-width: 100%;
+}
+
+button {
+  cursor: pointer;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+#app {
+  min-height: 100vh;
+}

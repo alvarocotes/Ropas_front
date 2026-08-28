@@ -1,0 +1,326 @@
+@import './base.css';
+
+h1,
+h2,
+h3,
+.display {
+  font-family: var(--display);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1.15;
+  color: var(--navy);
+}
+
+h1,
+h2 {
+  text-transform: uppercase;
+}
+
+/* Lema y frases de acento, con la letra manuscrita de la marca. */
+.script {
+  font-family: var(--script);
+  font-size: 1.35rem;
+  color: var(--terracotta);
+  line-height: 1.2;
+}
+
+/* Banda tejida que evoca la bufanda del logo. */
+.weave-strip {
+  height: 6px;
+  border-radius: 999px;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--teal) 0 14px,
+    var(--gold) 14px 22px,
+    var(--terracotta) 22px 36px,
+    var(--navy) 36px 44px
+  );
+}
+
+/* Título de sección con una percha dibujada al lado. */
+.hanger-head {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.hanger-head::before {
+  content: '';
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  background: no-repeat center / contain
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232E6B63' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 7.5V9'/%3E%3Cpath d='M12 7.5a2 2 0 1 1 2-2'/%3E%3Cpath d='M12 9 4 15.5a1 1 0 0 0 .6 1.8h14.8a1 1 0 0 0 .6-1.8L12 9Z'/%3E%3C/svg%3E");
+}
+
+/* Etiqueta de prenda, para destacar datos sueltos. */
+.clothing-tag {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.6rem 0.2rem 1.1rem;
+  border: 1px dashed var(--line);
+  border-radius: 6px 12px 12px 6px;
+  background: var(--card);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.clothing-tag::before {
+  content: '';
+  position: absolute;
+  left: 0.45rem;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--paper);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  border: 0;
+  border-radius: 999px;
+  padding: 0.75rem 1.2rem;
+  min-height: 44px;
+  font-family: var(--sans);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  touch-action: manipulation;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+@media (hover: hover) {
+  .btn:hover {
+    transform: translateY(-1px);
+  }
+}
+
+.btn-primary {
+  background: var(--terracotta);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: var(--terracotta-deep);
+}
+
+.btn-forest {
+  background: var(--teal);
+  color: white;
+}
+
+.btn-forest:hover {
+  background: var(--teal-deep);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--navy);
+  /* Contorno de puntada, como el pespunte de una prenda. */
+  border: 1px dashed var(--navy);
+}
+
+.btn-ghost:hover {
+  background: rgba(31, 42, 68, 0.06);
+}
+
+.btn-danger {
+  background: var(--alert);
+  color: white;
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.card {
+  position: relative;
+  background-color: var(--card);
+  background-image: var(--fabric);
+  background-size: 4px 4px, 4px 4px, 16px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+/* Pespunte interior: la costura que remata cada tarjeta. */
+.card::after {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border: 1px dashed rgba(31, 42, 68, 0.16);
+  border-radius: calc(var(--radius) - 8px);
+  pointer-events: none;
+}
+
+.card.no-stitch::after {
+  display: none;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.field span {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.field input,
+.field select,
+.field textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  background: #fffdf7;
+  border-radius: 12px;
+  padding: 0.7rem 0.85rem;
+  min-height: 44px;
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  outline: 2px solid var(--teal);
+  outline-offset: 1px;
+  border-color: var(--teal);
+}
+
+.field textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.2rem 0.7rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 0.8rem 0.7rem;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+
+th {
+  font-family: var(--display);
+  font-size: 0.82rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--teal);
+}
+
+.flash {
+  padding: 0.8rem 1rem;
+  border-radius: 12px;
+  font-size: 0.95rem;
+}
+
+.flash-error {
+  background: var(--alert-bg);
+  color: var(--alert);
+}
+
+.flash-ok {
+  background: var(--ok-bg);
+  color: var(--ok);
+}
+
+.grid-2 {
+  display: grid;
+  gap: 1rem;
+}
+
+@media (min-width: 720px) {
+  .grid-2 {
+    /* minmax(0, …) evita que el contenido ancho estire la columna y desborde. */
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 719px) {
+  .btn-block-sm,
+  form .btn,
+  .form .btn,
+  .actions .btn {
+    width: 100%;
+  }
+
+  .table-wrap thead {
+    display: none;
+  }
+
+  .table-wrap table,
+  .table-wrap tbody,
+  .table-wrap tr,
+  .table-wrap td {
+    display: block;
+    width: 100%;
+  }
+
+  .table-wrap tr {
+    padding: 0.85rem 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .table-wrap tr:last-child {
+    border-bottom: 0;
+    padding-bottom: 0;
+  }
+
+  .table-wrap td {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.8rem;
+    padding: 0.35rem 0;
+    border: 0;
+  }
+
+  .table-wrap td::before {
+    content: attr(data-label);
+    flex: 0 0 34%;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+
+  .table-wrap td:not([data-label]) {
+    justify-content: flex-end;
+  }
+
+  .table-wrap td:not([data-label])::before {
+    content: none;
+  }
+}
