@@ -34,7 +34,6 @@ const drafts = reactive<
 >({})
 const selectedId = ref<number | null>(null)
 
-const unlocated = computed(() => locations.value.filter((item) => item.latitude === null))
 const located = computed(() => locations.value.filter((item) => item.latitude !== null))
 
 const selected = computed(
