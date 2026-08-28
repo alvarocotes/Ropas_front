@@ -18,6 +18,7 @@ const markers = computed(() =>
     latitude: point.latitude,
     longitude: point.longitude,
     peopleHelped: point.peopleHelped,
+    itemsDelivered: point.itemsDelivered,
   })),
 )
 
@@ -32,7 +33,10 @@ function draw() {
   if (!markers.value.length) return
 
   for (const marker of markers.value) {
-    const detail = `${marker.peopleHelped} persona(s) ayudada(s)`
+    const detail = [
+      `${marker.peopleHelped} persona(s) ayudada(s)`,
+      `${marker.itemsDelivered} prenda(s) entregada(s)`,
+    ].join('<br>')
     L.circleMarker([marker.latitude, marker.longitude], {
       radius: radiusFor(marker.peopleHelped),
       color: '#c45a3c',

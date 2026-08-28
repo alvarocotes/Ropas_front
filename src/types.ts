@@ -142,6 +142,7 @@ export interface ImpactPoint {
   latitude: number
   longitude: number
   peopleHelped: number
+  itemsDelivered: number
 }
 
 export interface Impact {

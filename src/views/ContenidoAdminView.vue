@@ -17,6 +17,9 @@ interface DeliveryLocation {
   longitude: number | null
   geoLabel: string | null
   manualItemsDelivered: number
+  /** Prendas del paquete que armó el voluntario, descontadas del inventario. */
+  itemsFromInventory: number
+  itemsDelivered: number
 }
 
 const locations = ref<DeliveryLocation[]>([])
@@ -218,7 +221,12 @@ async function saveSection(section: AboutSection) {
             <button type="button" class="loc-pick" @click="select(item)">
               <strong>#{{ item.id }} · {{ item.address }}</strong>
               <small>
-                {{ item.peopleCount }} persona(s) · {{ item.manualItemsDelivered }} prenda(s) ·
+                {{ item.peopleCount }} persona(s) · {{ item.itemsDelivered }} prenda(s)<template
+                  v-if="item.itemsFromInventory > 0"
+                >
+                  ({{ item.itemsFromInventory }} del inventario)</template
+                >
+                ·
                 {{ item.latitude === null ? 'sin ubicar' : (item.geoLabel ?? 'ubicada') }}
               </small>
             </button>
@@ -253,7 +261,7 @@ async function saveSection(section: AboutSection) {
               <input v-model.number="selectedDraft.peopleCount" type="number" min="1" step="1" />
             </label>
             <label class="field">
-              <span>Prendas entregadas</span>
+              <span>Prendas registradas a mano</span>
               <input
                 v-model.number="selectedDraft.manualItemsDelivered"
                 type="number"
@@ -262,15 +270,21 @@ async function saveSection(section: AboutSection) {
               />
             </label>
           </div>
+          <p class="hint">
+            Prendas del paquete que armó el voluntario: <strong>{{ selected.itemsFromInventory }}</strong
+            >. Total que se publica en el mapa:
+            <strong>{{ selected.itemsFromInventory + (selectedDraft.manualItemsDelivered || 0) }}</strong
+            >.
+          </p>
           <div class="row">
             <button class="btn btn-ghost" type="button" @click="applySixPerPerson">
               Calcular prendas (6 por persona)
             </button>
           </div>
           <p class="hint">
-            Las prendas se cuentan aquí solo cuando no salieron del inventario de la plataforma,
-            como en las jornadas y las entregas anteriores. Lo que entregues desde ahora por la
-            plataforma se suma solo, con el paquete del inventario.
+            Escribe prendas a mano solo cuando no salieron del inventario, como en las jornadas y
+            las entregas anteriores a la plataforma. Lo que el voluntario registre en el paquete se
+            suma automáticamente.
           </p>
           <button class="btn btn-primary" type="button" @click="saveLocation(selected)">
             Guardar
