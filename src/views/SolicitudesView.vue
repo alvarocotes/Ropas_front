@@ -106,18 +106,16 @@ function responsible(request: HelpRequest) {
 
 async function load() {
   try {
-    const requestRes = await api.get<HelpRequest[]>('/help-requests')
+    const canSeeInventory = auth.canHandleInventory || auth.isAdmin || auth.isReception
+    // En paralelo para no sumar dos idas y vueltas al servidor.
+    const [requestRes, productRes] = await Promise.all([
+      api.get<HelpRequest[]>('/help-requests'),
+      canSeeInventory ? api.get<Product[]>('/inventory/products').catch(() => null) : null,
+    ])
     requests.value = requestRes.data
-    if (auth.canHandleInventory || auth.isAdmin || auth.isReception) {
-      try {
-        const productRes = await api.get<Product[]>('/inventory/products')
-        products.value = productRes.data.filter((item) => item.isActive)
-        if (!newItem.value.productId && products.value[0]) {
-          newItem.value.productId = products.value[0].id
-        }
-      } catch {
-        products.value = []
-      }
+    products.value = (productRes?.data ?? []).filter((item) => item.isActive)
+    if (!newItem.value.productId && products.value[0]) {
+      newItem.value.productId = products.value[0].id
     }
   } catch (err) {
     error.value = apiErrorMessage(err)

@@ -19,21 +19,20 @@ const showInventory = computed(() => auth.canHandleInventory)
 
 onMounted(async () => {
   try {
-    const requestRes = await api.get<HelpRequest[]>('/help-requests')
+    // Todo en paralelo: en producción cada ida y vuelta al servidor cuesta.
+    const [requestRes, alertRes, donationRes] = await Promise.all([
+      api.get<HelpRequest[]>('/help-requests'),
+      showInventory.value ? api.get<Product[]>('/inventory/alerts') : null,
+      showInventory.value ? api.get<Donation[]>('/donations') : null,
+    ])
     requests.value = requestRes.data.filter(
       (item) => item.status === 'recibido' || item.status === 'en_proceso',
     )
     readyRequests.value = requestRes.data.filter((item) => item.status === 'listo')
-    if (showInventory.value) {
-      const [alertRes, donationRes] = await Promise.all([
-        api.get<Product[]>('/inventory/alerts'),
-        api.get<Donation[]>('/donations'),
-      ])
-      alerts.value = alertRes.data
-      donations.value = donationRes.data.filter(
-        (item) => item.status === 'recibido' || item.status === 'en_proceso',
-      )
-    }
+    alerts.value = alertRes?.data ?? []
+    donations.value = (donationRes?.data ?? []).filter(
+      (item) => item.status === 'recibido' || item.status === 'en_proceso',
+    )
   } finally {
     loading.value = false
   }
