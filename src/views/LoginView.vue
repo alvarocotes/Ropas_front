@@ -78,10 +78,11 @@ async function submit() {
 }
 
 .logo {
-  width: 92px;
-  justify-self: center;
+  width: 120px;
+  aspect-ratio: 1;
+  object-fit: cover;
   border-radius: 50%;
-  border: 2px solid var(--navy);
+  justify-self: center;
 }
 
 .box .btn {

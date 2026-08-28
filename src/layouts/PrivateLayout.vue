@@ -88,9 +88,10 @@ aside {
 .mark {
   width: 2.4rem;
   height: 2.4rem;
+  /* Sobre el azul oscuro se recorta en círculo con el fondo crema del propio logo. */
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid var(--gold);
+  background: var(--cream);
 }
 
 nav {
