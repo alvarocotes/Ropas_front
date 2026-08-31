@@ -57,8 +57,8 @@ async function toggleActive(user: User) {
   <section>
     <h1>Usuarios</h1>
     <p class="lead">
-      Solo el administrador crea cuentas. Hay cupo para dos voluntarios activos; las cuentas de
-      recepción no tienen límite.
+      Solo el administrador crea cuentas. Puedes crear tantos voluntarios y cuentas de recepción
+      como necesites.
     </p>
     <p v-if="error" class="flash flash-error">{{ error }}</p>
 
