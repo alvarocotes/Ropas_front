@@ -357,7 +357,9 @@ async function save() {
 
       <dl class="details">
         <div><dt>Nombre</dt><dd>{{ selected.fullName }}</dd></div>
-        <div><dt>Identificación</dt><dd>{{ selected.identificationNumber }}</dd></div>
+        <div v-if="selected.identificationNumber">
+          <dt>Identificación</dt><dd>{{ selected.identificationNumber }}</dd>
+        </div>
         <div><dt>WhatsApp</dt><dd>{{ selected.phoneWhatsapp }}</dd></div>
         <div><dt>Residencia antes</dt><dd>{{ selected.residenceBefore }}</dd></div>
         <div><dt>Dirección de entrega</dt><dd>{{ selected.residenceAfter }}</dd></div>
@@ -380,6 +382,9 @@ async function save() {
         <div><dt>Ropa interior</dt><dd>{{ dash(selected.underwearNeeds) }}</dd></div>
         <div><dt>Sábanas, cobijas y toallas</dt><dd>{{ yesNo(selected.needsLinens) }}</dd></div>
         <div><dt>Pañales</dt><dd>{{ yesNo(selected.needsDiapers) }}</dd></div>
+        <div v-if="selected.needsDiapers">
+          <dt>Etapa de pañal</dt><dd>{{ dash(selected.diaperStage) }}</dd>
+        </div>
         <div><dt>Toallas higiénicas</dt><dd>{{ yesNo(selected.needsSanitary) }}</dd></div>
         <div class="wide"><dt>Otras necesidades</dt><dd>{{ dash(selected.additionalNeeds) }}</dd></div>
         <div v-if="selected.internalNotes" class="wide">

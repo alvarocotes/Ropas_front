@@ -118,7 +118,7 @@ export interface HelpRequestItem {
 export interface HelpRequest {
   id: number
   fullName: string
-  identificationNumber: string
+  identificationNumber?: string
   residenceBefore: string
   residenceAfter: string
   phoneWhatsapp: string
@@ -139,6 +139,7 @@ export interface HelpRequest {
   underwearNeeds: string | null
   needsLinens: boolean
   needsDiapers: boolean
+  diaperStage: string | null
   needsSanitary: boolean
   additionalNeeds: string | null
   status: RequestStatus
