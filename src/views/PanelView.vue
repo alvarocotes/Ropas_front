@@ -62,7 +62,7 @@ onMounted(async () => {
         <div class="head">
           <h2>Voluntarios hoy</h2>
           <RouterLink v-if="auth.isAdmin" to="/usuarios">Ver horarios</RouterLink>
-          <RouterLink v-else-if="auth.user?.role === 'volunteer'" to="/perfil">Mi horario</RouterLink>
+          <RouterLink v-else-if="auth.user?.role === 'volunteer'" to="/horario">Mi horario</RouterLink>
         </div>
         <p v-if="todayVolunteers.length === 0">Nadie registró horario para hoy.</p>
         <ul>

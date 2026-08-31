@@ -73,6 +73,12 @@ const router = createRouter({
           component: () => import('@/views/ContenidoAdminView.vue'),
         },
         {
+          path: '/horario',
+          name: 'horario',
+          meta: { roles: ['volunteer'] },
+          component: () => import('@/views/HorarioView.vue'),
+        },
+        {
           path: '/perfil',
           name: 'perfil',
           component: () => import('@/views/PerfilView.vue'),

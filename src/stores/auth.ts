@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import api from '@/api/client'
-import type { User } from '@/types'
+import type { AvailabilitySlot, User } from '@/types'
 
 const TOKEN_KEY = 'abrigar_token'
 const USER_KEY = 'abrigar_user'
@@ -52,6 +52,15 @@ export const useAuthStore = defineStore('auth', () => {
     return data
   }
 
+  async function saveAvailability(slots: AvailabilitySlot[]) {
+    const { data } = await api.put<AvailabilitySlot[]>('/auth/me/availability', { slots })
+    if (user.value) {
+      user.value = { ...user.value, availability: data }
+      localStorage.setItem(USER_KEY, JSON.stringify(user.value))
+    }
+    return data
+  }
+
   function logout() {
     token.value = null
     user.value = null
@@ -69,6 +78,7 @@ export const useAuthStore = defineStore('auth', () => {
     login,
     fetchMe,
     updateProfile,
+    saveAvailability,
     logout,
   }
 })
