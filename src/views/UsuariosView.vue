@@ -7,6 +7,7 @@ import { roleLabel } from '@/types'
 
 const users = ref<User[]>([])
 const error = ref('')
+const showCreate = ref(false)
 const form = reactive({
   email: '',
   password: '',
@@ -36,10 +37,17 @@ async function createUser() {
     form.password = ''
     form.fullName = ''
     form.phone = ''
+    form.role = 'volunteer'
+    showCreate.value = false
     await load()
   } catch (err) {
     error.value = apiErrorMessage(err)
   }
+}
+
+function cancelCreate() {
+  showCreate.value = false
+  error.value = ''
 }
 
 async function toggleActive(user: User) {
@@ -55,14 +63,28 @@ async function toggleActive(user: User) {
 
 <template>
   <section>
-    <h1>Usuarios</h1>
-    <p class="lead">
-      Solo el administrador crea cuentas. Puedes crear tantos voluntarios y cuentas de recepción
-      como necesites.
-    </p>
+    <div class="page-head">
+      <div>
+        <h1>Usuarios</h1>
+        <p class="lead">
+          Solo el administrador crea cuentas. Puedes crear tantos voluntarios y cuentas de recepción
+          como necesites.
+        </p>
+      </div>
+      <div class="page-actions">
+        <button
+          v-if="!showCreate"
+          class="btn btn-primary"
+          type="button"
+          @click="showCreate = true"
+        >
+          Crear cuenta
+        </button>
+      </div>
+    </div>
     <p v-if="error" class="flash flash-error">{{ error }}</p>
 
-    <form class="card form" @submit.prevent="createUser">
+    <form v-if="showCreate" class="card form" @submit.prevent="createUser">
       <h2>Crear cuenta</h2>
       <label class="field"><span>Nombre</span><input v-model="form.fullName" required /></label>
       <label class="field"><span>Correo</span><input v-model="form.email" type="email" required /></label>
@@ -76,7 +98,10 @@ async function toggleActive(user: User) {
           <option value="admin">Administrador</option>
         </select>
       </label>
-      <button class="btn btn-primary" type="submit">Crear</button>
+      <div class="form-actions">
+        <button class="btn btn-ghost" type="button" @click="cancelCreate">Cancelar</button>
+        <button class="btn btn-primary" type="submit">Crear</button>
+      </div>
     </form>
 
     <div class="card table-wrap">

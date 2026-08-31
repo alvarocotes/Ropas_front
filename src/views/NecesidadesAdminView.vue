@@ -7,6 +7,7 @@ import type { Product, PublicNeed } from '@/types'
 const needs = ref<PublicNeed[]>([])
 const products = ref<Product[]>([])
 const error = ref('')
+const showCreate = ref(false)
 const form = reactive({
   title: '',
   quantityNeeded: 1,
@@ -45,10 +46,18 @@ async function createNeed() {
     form.title = ''
     form.message = ''
     form.quantityNeeded = 1
+    form.productId = 0
+    form.isVisible = true
+    showCreate.value = false
     await load()
   } catch (err) {
     error.value = apiErrorMessage(err)
   }
+}
+
+function cancelCreate() {
+  showCreate.value = false
+  error.value = ''
 }
 
 async function toggle(need: PublicNeed) {
@@ -59,11 +68,25 @@ async function toggle(need: PublicNeed) {
 
 <template>
   <section>
-    <h1>Necesidades públicas</h1>
-    <p class="lead">Lo que publiques aquí se muestra en la web para orientar donaciones.</p>
+    <div class="page-head">
+      <div>
+        <h1>Necesidades públicas</h1>
+        <p class="lead">Lo que publiques aquí se muestra en la web para orientar donaciones.</p>
+      </div>
+      <div class="page-actions">
+        <button
+          v-if="!showCreate"
+          class="btn btn-primary"
+          type="button"
+          @click="showCreate = true"
+        >
+          Publicar necesidad
+        </button>
+      </div>
+    </div>
     <p v-if="error" class="flash flash-error">{{ error }}</p>
 
-    <form class="card form" @submit.prevent="createNeed">
+    <form v-if="showCreate" class="card form" @submit.prevent="createNeed">
       <h2>Publicar necesidad</h2>
       <label class="field"><span>Título</span><input v-model="form.title" required /></label>
       <label class="field">
@@ -76,7 +99,10 @@ async function toggle(need: PublicNeed) {
       <label class="field"><span>Cantidad orientativa</span><input v-model.number="form.quantityNeeded" type="number" min="1" /></label>
       <label class="field"><span>Mensaje</span><textarea v-model="form.message" /></label>
       <label class="check"><input v-model="form.isVisible" type="checkbox" /> Visible al público</label>
-      <button class="btn btn-primary" type="submit">Publicar</button>
+      <div class="form-actions">
+        <button class="btn btn-ghost" type="button" @click="cancelCreate">Cancelar</button>
+        <button class="btn btn-primary" type="submit">Publicar</button>
+      </div>
     </form>
 
     <div class="card table-wrap">

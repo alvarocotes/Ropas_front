@@ -44,6 +44,12 @@ const router = createRouter({
           component: () => import('@/views/InventarioView.vue'),
         },
         {
+          path: '/movimientos',
+          name: 'movimientos',
+          meta: { roles: ['admin', 'volunteer'] },
+          component: () => import('@/views/MovimientosView.vue'),
+        },
+        {
           path: '/solicitudes',
           name: 'solicitudes',
           component: () => import('@/views/SolicitudesView.vue'),

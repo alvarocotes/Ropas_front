@@ -255,6 +255,42 @@ th {
   color: var(--ok);
 }
 
+.page-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.9rem 1.2rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.2rem;
+}
+
+.page-head > div:first-child {
+  flex: 1 1 16rem;
+  min-width: 0;
+}
+
+.page-head .lead {
+  margin: 0.35rem 0 0;
+}
+
+.page-head + .flash {
+  margin-top: 0.8rem;
+}
+
+.page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  justify-content: flex-end;
+}
+
 .grid-2 {
   display: grid;
   gap: 1rem;
@@ -271,7 +307,14 @@ th {
   .btn-block-sm,
   form .btn,
   .form .btn,
-  .actions .btn {
+  .actions .btn,
+  .form-actions .btn,
+  .page-actions .btn {
+    width: 100%;
+  }
+
+  .page-actions,
+  .form-actions {
     width: 100%;
   }
 

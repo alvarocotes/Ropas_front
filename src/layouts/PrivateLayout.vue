@@ -25,6 +25,7 @@ function logout() {
       <nav>
         <RouterLink to="/panel">Panel</RouterLink>
         <RouterLink v-if="auth.canHandleInventory" to="/inventario">Inventario</RouterLink>
+        <RouterLink v-if="auth.canHandleInventory" to="/movimientos">Movimientos</RouterLink>
         <RouterLink to="/solicitudes">Solicitudes</RouterLink>
         <RouterLink v-if="auth.canHandleInventory" to="/donaciones">Donaciones</RouterLink>
         <RouterLink v-if="auth.canHandleInventory" to="/necesidades-admin">Necesidades</RouterLink>

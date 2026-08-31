@@ -2,11 +2,11 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import api, { apiErrorMessage } from '@/api/client'
 import StatusBadge from '@/components/StatusBadge.vue'
-import type { InventoryMovement, Product } from '@/types'
+import type { Product } from '@/types'
 
 const products = ref<Product[]>([])
-const movements = ref<InventoryMovement[]>([])
 const error = ref('')
+const showCreate = ref(false)
 const productForm = reactive({
   name: '',
   unit: 'unidad',
@@ -15,7 +15,6 @@ const productForm = reactive({
   publishWhenLow: false,
   publicNote: '',
 })
-const movementForm = reactive({ productId: 0, type: 'entrada' as 'entrada' | 'salida', quantity: 1, note: '' })
 /** Cantidad a sumar o restar desde la tarjeta de cada producto. */
 const amounts = reactive<Record<number, number>>({})
 const busyId = ref<number | null>(null)
@@ -33,19 +32,12 @@ const filteredProducts = computed(() => {
 
 async function load() {
   try {
-    const [productRes, movementRes] = await Promise.all([
-      api.get<Product[]>('/inventory/products'),
-      api.get<InventoryMovement[]>('/inventory/movements'),
-    ])
-    products.value = productRes.data
-    movements.value = movementRes.data
+    const { data } = await api.get<Product[]>('/inventory/products')
+    products.value = data
     for (const product of products.value) {
       if (!amounts[product.id]) {
         amounts[product.id] = 1
       }
-    }
-    if (!movementForm.productId && products.value[0]) {
-      movementForm.productId = products.value[0].id
     }
   } catch (err) {
     error.value = apiErrorMessage(err)
@@ -61,24 +53,21 @@ async function createProduct() {
   try {
     await api.post('/inventory/products', productForm)
     productForm.name = ''
+    productForm.unit = 'unidad'
     productForm.quantity = 0
+    productForm.minQuantity = 5
+    productForm.publishWhenLow = false
     productForm.publicNote = ''
+    showCreate.value = false
     await load()
   } catch (err) {
     error.value = apiErrorMessage(err)
   }
 }
 
-async function registerMovement() {
+function cancelCreate() {
+  showCreate.value = false
   error.value = ''
-  try {
-    await api.post('/inventory/movements', movementForm)
-    movementForm.quantity = 1
-    movementForm.note = ''
-    await load()
-  } catch (err) {
-    error.value = apiErrorMessage(err)
-  }
 }
 
 async function changeStock(product: Product, type: 'entrada' | 'salida') {
@@ -124,55 +113,49 @@ function isLow(product: Product) {
 
 <template>
   <section>
-    <h1>Inventario</h1>
-    <p class="lead">Entradas, salidas y alertas cuando el stock baja del mínimo.</p>
+    <div class="page-head">
+      <div>
+        <h1>Inventario</h1>
+        <p class="lead">Existencias y alertas cuando el stock baja del mínimo.</p>
+      </div>
+      <div class="page-actions">
+        <button
+          v-if="!showCreate"
+          class="btn btn-primary"
+          type="button"
+          @click="showCreate = true"
+        >
+          Nuevo producto
+        </button>
+      </div>
+    </div>
     <p v-if="error" class="flash flash-error">{{ error }}</p>
 
-    <div class="grid-2">
-      <form class="card form" @submit.prevent="createProduct">
-        <h2>Nuevo producto</h2>
-        <label class="field"><span>Nombre</span><input v-model="productForm.name" required /></label>
-        <label class="field"><span>Unidad</span><input v-model="productForm.unit" /></label>
-        <label class="field"><span>Cantidad inicial</span><input v-model.number="productForm.quantity" type="number" min="0" /></label>
-        <label class="field"><span>Mínimo para alerta</span><input v-model.number="productForm.minQuantity" type="number" min="0" /></label>
-        <label class="check">
-          <input v-model="productForm.publishWhenLow" type="checkbox" />
-          <span>Publicar en necesidades públicas cuando el stock baje del mínimo</span>
-        </label>
-        <label v-if="productForm.publishWhenLow" class="field">
-          <span>Mensaje para los donantes (opcional)</span>
-          <input v-model="productForm.publicNote" maxlength="300" placeholder="Ej.: Necesitamos cobijas de tamaño individual" />
-        </label>
+    <form v-if="showCreate" class="card form" @submit.prevent="createProduct">
+      <h2>Nuevo producto</h2>
+      <label class="field"><span>Nombre</span><input v-model="productForm.name" required /></label>
+      <label class="field"><span>Unidad</span><input v-model="productForm.unit" /></label>
+      <label class="field"><span>Cantidad inicial</span><input v-model.number="productForm.quantity" type="number" min="0" /></label>
+      <label class="field"><span>Mínimo para alerta</span><input v-model.number="productForm.minQuantity" type="number" min="0" /></label>
+      <label class="check">
+        <input v-model="productForm.publishWhenLow" type="checkbox" />
+        <span>Publicar en necesidades públicas cuando el stock baje del mínimo</span>
+      </label>
+      <label v-if="productForm.publishWhenLow" class="field">
+        <span>Mensaje para los donantes (opcional)</span>
+        <input v-model="productForm.publicNote" maxlength="300" placeholder="Ej.: Necesitamos cobijas de tamaño individual" />
+      </label>
+      <div class="form-actions">
+        <button class="btn btn-ghost" type="button" @click="cancelCreate">Cancelar</button>
         <button class="btn btn-primary" type="submit">Crear</button>
-      </form>
-
-      <form class="card form" @submit.prevent="registerMovement">
-        <h2>Movimiento con nota</h2>
-        <p class="hint">Para entradas o salidas que necesiten dejar un detalle escrito.</p>
-        <label class="field">
-          <span>Producto</span>
-          <select v-model.number="movementForm.productId" required>
-            <option v-for="product in products" :key="product.id" :value="product.id">{{ product.name }}</option>
-          </select>
-        </label>
-        <label class="field">
-          <span>Tipo</span>
-          <select v-model="movementForm.type">
-            <option value="entrada">Entrada</option>
-            <option value="salida">Salida</option>
-          </select>
-        </label>
-        <label class="field"><span>Cantidad</span><input v-model.number="movementForm.quantity" type="number" min="1" required /></label>
-        <label class="field"><span>Nota</span><input v-model="movementForm.note" /></label>
-        <button class="btn btn-forest" type="submit">Guardar movimiento</button>
-      </form>
-    </div>
+      </div>
+    </form>
 
     <div class="block-head">
       <h2>Existencias</h2>
       <p class="hint">
         Escribe la cantidad y pulsa <strong>+</strong> para sumarla al stock, o <strong>−</strong>
-        para descontarla. Cada cambio queda registrado como movimiento.
+        para descontarla. El historial de esos cambios está en Movimientos.
       </p>
       <div class="toolbar">
         <div class="search">
@@ -195,7 +178,7 @@ function isLow(product: Product) {
     </div>
 
     <div v-if="products.length === 0" class="card empty">
-      Todavía no hay productos. Crea el primero con el formulario de arriba.
+      Todavía no hay productos. Pulsa <strong>Nuevo producto</strong> para crear el primero.
     </div>
     <div v-else-if="filteredProducts.length === 0" class="card empty">
       Ningún producto coincide con la búsqueda.
@@ -277,40 +260,16 @@ function isLow(product: Product) {
         </label>
       </article>
     </div>
-
-    <div class="card table-wrap block">
-      <h2>Últimos movimientos</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Fecha</th>
-            <th>Producto</th>
-            <th>Tipo</th>
-            <th>Cantidad</th>
-            <th>Por</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="movement in movements" :key="movement.id">
-            <td data-label="Fecha">{{ new Date(movement.createdAt).toLocaleString('es') }}</td>
-            <td data-label="Producto">{{ movement.product?.name }}</td>
-            <td data-label="Tipo">{{ movement.type }}</td>
-            <td data-label="Cantidad">{{ movement.quantity }}</td>
-            <td data-label="Por">{{ movement.user?.fullName }}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
   </section>
 </template>
 
 <style scoped>
 h1 { font-size: clamp(1.6rem, 7vw, 2.2rem); }
-.lead { color: var(--ink-soft); margin-bottom: 1rem; }
-.form, .block { padding: 1.1rem; margin-top: 1rem; display: grid; gap: 0.8rem; }
+.lead { color: var(--ink-soft); }
+.form { padding: 1.1rem; margin-top: 1rem; display: grid; gap: 0.8rem; }
 .mini { width: 90px; border: 1px solid var(--line); border-radius: 8px; padding: 0.3rem 0.4rem; }
 .hint { color: var(--ink-soft); font-size: 0.9rem; margin: -0.3rem 0 0.2rem; }
-.block-head { margin-top: 1.6rem; }
+.block-head { margin-top: 1.1rem; }
 .block-head h2 { margin-bottom: 0.25rem; }
 .empty { padding: 1.1rem; color: var(--ink-soft); margin-top: 0.6rem; }
 

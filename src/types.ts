@@ -168,3 +168,8 @@ export const donationStatusLabel: Record<DonationStatus, string> = {
   ingresado: 'Ingresado',
   cancelado: 'Cancelado',
 }
+
+export const movementTypeLabel: Record<MovementType, string> = {
+  entrada: 'Entrada',
+  salida: 'Salida',
+}
