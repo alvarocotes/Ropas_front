@@ -31,10 +31,13 @@ function logout() {
         <RouterLink v-if="auth.canHandleInventory" to="/necesidades-admin">Necesidades</RouterLink>
         <RouterLink v-if="auth.isAdmin" to="/contenido">Contenido</RouterLink>
         <RouterLink v-if="auth.isAdmin" to="/usuarios">Usuarios</RouterLink>
+        <RouterLink to="/perfil">Mi perfil</RouterLink>
       </nav>
       <div class="who">
-        <strong>{{ auth.user?.fullName }}</strong>
-        <small>{{ auth.user ? roleLabel[auth.user.role] : '' }}</small>
+        <RouterLink to="/perfil" class="who-link">
+          <strong>{{ auth.user?.fullName }}</strong>
+          <small>{{ auth.user ? roleLabel[auth.user.role] : '' }}</small>
+        </RouterLink>
         <button class="btn btn-ghost" type="button" @click="logout">Cerrar sesión</button>
       </div>
     </aside>
@@ -122,6 +125,17 @@ nav a.router-link-active {
   flex-direction: column;
   gap: 0.35rem;
   font-size: 0.92rem;
+}
+
+.who-link {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  color: inherit;
+}
+
+.who-link:hover strong {
+  text-decoration: underline;
 }
 
 .who small {

@@ -3,7 +3,7 @@ import { onMounted, reactive, ref } from 'vue'
 import api, { apiErrorMessage } from '@/api/client'
 import StatusBadge from '@/components/StatusBadge.vue'
 import type { User, UserRole } from '@/types'
-import { roleLabel } from '@/types'
+import { formatAvailability, roleLabel } from '@/types'
 
 const users = ref<User[]>([])
 const error = ref('')
@@ -111,6 +111,7 @@ async function toggleActive(user: User) {
             <th>Nombre</th>
             <th>Correo</th>
             <th>Rol</th>
+            <th>Horario</th>
             <th>Estado</th>
             <th></th>
           </tr>
@@ -120,6 +121,9 @@ async function toggleActive(user: User) {
             <td data-label="Nombre">{{ user.fullName }}</td>
             <td data-label="Correo">{{ user.email }}</td>
             <td data-label="Rol">{{ roleLabel[user.role] }}</td>
+            <td data-label="Horario">
+              {{ user.role === 'volunteer' ? formatAvailability(user.availability) : '—' }}
+            </td>
             <td data-label="Estado">
               <StatusBadge :tone="user.isActive ? 'listo' : 'cancelado'" :label="user.isActive ? 'Activo' : 'Inactivo'" />
             </td>

@@ -73,6 +73,11 @@ const router = createRouter({
           component: () => import('@/views/ContenidoAdminView.vue'),
         },
         {
+          path: '/perfil',
+          name: 'perfil',
+          component: () => import('@/views/PerfilView.vue'),
+        },
+        {
           path: '/usuarios',
           name: 'usuarios',
           meta: { admin: true },

@@ -25,6 +25,45 @@ export interface User {
   phone: string | null
   isActive: boolean
   createdAt: string
+  availability?: AvailabilitySlot[]
+}
+
+export interface AvailabilitySlot {
+  weekday: number
+  startTime: string
+  endTime: string
+}
+
+export interface VolunteerSchedule {
+  id: number
+  fullName: string
+  availability: AvailabilitySlot[]
+}
+
+export const WEEKDAYS: { value: number; label: string; short: string }[] = [
+  { value: 1, label: 'Lunes', short: 'Lun' },
+  { value: 2, label: 'Martes', short: 'Mar' },
+  { value: 3, label: 'Miércoles', short: 'Mié' },
+  { value: 4, label: 'Jueves', short: 'Jue' },
+  { value: 5, label: 'Viernes', short: 'Vie' },
+  { value: 6, label: 'Sábado', short: 'Sáb' },
+  { value: 7, label: 'Domingo', short: 'Dom' },
+]
+
+export function isoWeekday(date = new Date()): number {
+  const day = date.getDay()
+  return day === 0 ? 7 : day
+}
+
+export function formatAvailability(slots?: AvailabilitySlot[]): string {
+  if (!slots?.length) return 'Sin horario'
+  return [...slots]
+    .sort((a, b) => a.weekday - b.weekday)
+    .map((slot) => {
+      const day = WEEKDAYS.find((item) => item.value === slot.weekday)
+      return `${day?.short ?? slot.weekday} ${slot.startTime}–${slot.endTime}`
+    })
+    .join(' · ')
 }
 
 export interface Product {

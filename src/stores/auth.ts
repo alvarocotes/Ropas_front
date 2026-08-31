@@ -39,6 +39,19 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.setItem(USER_KEY, JSON.stringify(data))
   }
 
+  async function updateProfile(payload: {
+    fullName: string
+    email: string
+    phone: string
+    password?: string
+    currentPassword?: string
+  }) {
+    const { data } = await api.patch<User>('/auth/me', payload)
+    user.value = data
+    localStorage.setItem(USER_KEY, JSON.stringify(data))
+    return data
+  }
+
   function logout() {
     token.value = null
     user.value = null
@@ -55,6 +68,7 @@ export const useAuthStore = defineStore('auth', () => {
     canHandleInventory,
     login,
     fetchMe,
+    updateProfile,
     logout,
   }
 })
