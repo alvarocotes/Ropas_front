@@ -2,8 +2,10 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import api, { apiErrorMessage } from '@/api/client'
 import StatusBadge from '@/components/StatusBadge.vue'
+import { useAuthStore } from '@/stores/auth'
 import type { Product } from '@/types'
 
+const auth = useAuthStore()
 const products = ref<Product[]>([])
 const error = ref('')
 const showCreate = ref(false)
@@ -20,6 +22,15 @@ const amounts = reactive<Record<number, number>>({})
 const busyId = ref<number | null>(null)
 const search = ref('')
 const onlyLow = ref(false)
+const editingId = ref<number | null>(null)
+const editForm = reactive({
+  name: '',
+  unit: 'unidad',
+  minQuantity: 5,
+  publishWhenLow: false,
+  publicNote: '',
+})
+const savingEdit = ref(false)
 
 const filteredProducts = computed(() => {
   const term = search.value.trim().toLowerCase()
@@ -106,6 +117,59 @@ async function togglePublish(product: Product) {
   }
 }
 
+function startEdit(product: Product) {
+  editingId.value = product.id
+  editForm.name = product.name
+  editForm.unit = product.unit
+  editForm.minQuantity = product.minQuantity
+  editForm.publishWhenLow = product.publishWhenLow
+  editForm.publicNote = product.publicNote ?? ''
+  error.value = ''
+}
+
+function cancelEdit() {
+  editingId.value = null
+}
+
+async function saveEdit(product: Product) {
+  const name = editForm.name.trim()
+  if (name.length < 2) {
+    error.value = 'El nombre del producto debe tener al menos 2 caracteres.'
+    return
+  }
+  error.value = ''
+  savingEdit.value = true
+  try {
+    await api.patch(`/inventory/products/${product.id}`, {
+      name,
+      unit: editForm.unit.trim() || 'unidad',
+      minQuantity: editForm.minQuantity,
+      publishWhenLow: editForm.publishWhenLow,
+      publicNote: editForm.publicNote.trim(),
+    })
+    editingId.value = null
+    await load()
+  } catch (err) {
+    error.value = apiErrorMessage(err)
+  } finally {
+    savingEdit.value = false
+  }
+}
+
+async function removeProduct(product: Product) {
+  if (!window.confirm(`¿Eliminar “${product.name}” del inventario? Dejará de aparecer en existencias.`)) {
+    return
+  }
+  error.value = ''
+  try {
+    await api.delete(`/inventory/products/${product.id}`)
+    if (editingId.value === product.id) editingId.value = null
+    await load()
+  } catch (err) {
+    error.value = apiErrorMessage(err)
+  }
+}
+
 function isLow(product: Product) {
   return product.quantity < product.minQuantity
 }
@@ -116,7 +180,10 @@ function isLow(product: Product) {
     <div class="page-head">
       <div>
         <h1>Inventario</h1>
-        <p class="lead">Existencias y alertas cuando el stock baja del mínimo.</p>
+        <p class="lead">
+          Existencias y alertas cuando el stock baja del mínimo.
+          <template v-if="auth.isAdmin"> El administrador puede cambiar el nombre o eliminar un producto.</template>
+        </p>
       </div>
       <div class="page-actions">
         <button
@@ -196,6 +263,35 @@ function isLow(product: Product) {
           <StatusBadge v-else tone="listo" label="OK" />
         </header>
 
+        <form v-if="auth.isAdmin && editingId === product.id" class="edit" @submit.prevent="saveEdit(product)">
+          <label class="field">
+            <span>Nombre</span>
+            <input v-model="editForm.name" required minlength="2" />
+          </label>
+          <label class="field">
+            <span>Unidad</span>
+            <input v-model="editForm.unit" required />
+          </label>
+          <label class="field">
+            <span>Mínimo para alerta</span>
+            <input v-model.number="editForm.minQuantity" type="number" min="0" />
+          </label>
+          <label class="check">
+            <input v-model="editForm.publishWhenLow" type="checkbox" />
+            <span>Publicar en necesidades cuando baje del mínimo</span>
+          </label>
+          <label v-if="editForm.publishWhenLow" class="field">
+            <span>Mensaje para donantes</span>
+            <input v-model="editForm.publicNote" maxlength="300" />
+          </label>
+          <div class="form-actions">
+            <button class="btn btn-ghost" type="button" @click="cancelEdit">Cancelar</button>
+            <button class="btn btn-primary" type="submit" :disabled="savingEdit">
+              {{ savingEdit ? 'Guardando...' : 'Guardar' }}
+            </button>
+          </div>
+        </form>
+
         <div class="figure">
           <strong>{{ product.quantity }}</strong>
           <span>{{ product.unit }}</span>
@@ -230,6 +326,7 @@ function isLow(product: Product) {
           </button>
         </div>
 
+        <template v-if="editingId !== product.id">
         <label class="min-row">
           <span>Mínimo para alerta</span>
           <input
@@ -258,6 +355,12 @@ function isLow(product: Product) {
             }}
           </span>
         </label>
+
+        <div v-if="auth.isAdmin" class="catalog-actions">
+          <button class="btn btn-ghost" type="button" @click="startEdit(product)">Editar</button>
+          <button class="btn btn-ghost" type="button" @click="removeProduct(product)">Eliminar</button>
+        </div>
+        </template>
       </article>
     </div>
   </section>
@@ -470,6 +573,17 @@ h1 { font-size: clamp(1.6rem, 7vw, 2.2rem); }
   height: 1.15rem;
   flex: 0 0 auto;
   accent-color: var(--terracotta);
+}
+
+.edit {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.catalog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
 }
 @media (max-width: 719px) {
   .mini { width: 100%; max-width: 140px; min-height: 44px; }
