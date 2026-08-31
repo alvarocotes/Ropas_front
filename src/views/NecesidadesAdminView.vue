@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
 import api, { apiErrorMessage } from '@/api/client'
+import OverlayCard from '@/components/OverlayCard.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
+import { useLiveReload } from '@/composables/useLiveReload'
 import type { Product, PublicNeed } from '@/types'
 
 const needs = ref<PublicNeed[]>([])
@@ -16,7 +18,7 @@ const form = reactive({
   isVisible: true,
 })
 
-async function load() {
+async function load(opts?: { quiet?: boolean }) {
   try {
     const [needRes, productRes] = await Promise.all([
       api.get<PublicNeed[]>('/needs/admin'),
@@ -25,13 +27,15 @@ async function load() {
     needs.value = needRes.data
     products.value = productRes.data
   } catch (err) {
-    error.value = apiErrorMessage(err)
+    if (!opts?.quiet) error.value = apiErrorMessage(err)
   }
 }
 
 onMounted(() => {
   void load()
 })
+
+useLiveReload(() => load({ quiet: true }))
 
 async function createNeed() {
   error.value = ''
@@ -84,10 +88,12 @@ async function toggle(need: PublicNeed) {
         </button>
       </div>
     </div>
-    <p v-if="error" class="flash flash-error">{{ error }}</p>
+    <p v-if="error && !showCreate" class="flash flash-error">{{ error }}</p>
 
-    <form v-if="showCreate" class="card form" @submit.prevent="createNeed">
+    <OverlayCard v-if="showCreate" @close="cancelCreate">
+    <form class="form" @submit.prevent="createNeed">
       <h2>Publicar necesidad</h2>
+      <p v-if="error" class="flash flash-error">{{ error }}</p>
       <label class="field"><span>Título</span><input v-model="form.title" required /></label>
       <label class="field">
         <span>Producto del inventario (opcional)</span>
@@ -104,6 +110,7 @@ async function toggle(need: PublicNeed) {
         <button class="btn btn-primary" type="submit">Publicar</button>
       </div>
     </form>
+    </OverlayCard>
 
     <div class="card table-wrap">
       <table>
@@ -137,6 +144,7 @@ async function toggle(need: PublicNeed) {
 <style scoped>
 h1 { font-size: clamp(1.6rem, 7vw, 2.2rem); }
 .lead { color: var(--ink-soft); }
-.form, .table-wrap { margin-top: 1rem; padding: 1.1rem; display: grid; gap: 0.8rem; }
+.form { display: grid; gap: 0.8rem; }
+.table-wrap { margin-top: 1rem; padding: 1.1rem; display: grid; gap: 0.8rem; }
 .check { display: flex; gap: 0.5rem; align-items: center; }
 </style>

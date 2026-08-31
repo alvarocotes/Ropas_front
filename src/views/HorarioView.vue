@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import VolunteerScheduleEditor from '@/components/VolunteerScheduleEditor.vue'
+import AttendanceEditor from '@/components/AttendanceEditor.vue'
 
 const error = ref('')
 const flash = ref('')
@@ -12,13 +12,14 @@ const flash = ref('')
       <div>
         <h1>Mi horario</h1>
         <p class="lead">
-          Indica de qué hora a qué hora irás cada día. El equipo lo verá en el panel y en usuarios.
+          Registra las fechas concretas en las que irás y de qué hora a qué hora. El equipo lo verá
+          en el panel.
         </p>
       </div>
     </div>
     <p v-if="error" class="flash flash-error">{{ error }}</p>
     <p v-if="flash" class="flash flash-ok">{{ flash }}</p>
-    <VolunteerScheduleEditor
+    <AttendanceEditor
       @error="(message) => { error = message; flash = '' }"
       @saved="(message) => { flash = message; error = '' }"
     />

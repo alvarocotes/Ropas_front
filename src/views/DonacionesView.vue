@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import api, { apiErrorMessage } from '@/api/client'
+import OverlayCard from '@/components/OverlayCard.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
+import { useLiveReload } from '@/composables/useLiveReload'
 import type { Donation, DonationStatus, Product } from '@/types'
 import { donationStatusLabel } from '@/types'
 
@@ -14,7 +16,7 @@ const itemMap = ref<Record<number, number | ''>>({})
 
 const statuses: DonationStatus[] = ['recibido', 'en_proceso', 'ingresado', 'cancelado']
 
-async function load() {
+async function load(opts?: { quiet?: boolean }) {
   try {
     const [donationRes, productRes] = await Promise.all([
       api.get<Donation[]>('/donations'),
@@ -23,12 +25,16 @@ async function load() {
     donations.value = donationRes.data
     products.value = productRes.data.filter((item) => item.isActive)
   } catch (err) {
-    error.value = apiErrorMessage(err)
+    if (!opts?.quiet) error.value = apiErrorMessage(err)
   }
 }
 
 onMounted(() => {
   void load()
+})
+
+useLiveReload(() => load({ quiet: true }), {
+  paused: () => Boolean(selected.value),
 })
 
 function open(donation: Donation) {
@@ -62,7 +68,7 @@ async function save() {
   <section>
     <h1>Donaciones</h1>
     <p class="lead">Al marcar una donación como ingresada, los productos suman al inventario.</p>
-    <p v-if="error" class="flash flash-error">{{ error }}</p>
+    <p v-if="error && !selected" class="flash flash-error">{{ error }}</p>
 
     <div class="card table-wrap">
       <table>
@@ -93,8 +99,9 @@ async function save() {
       </table>
     </div>
 
-    <div v-if="selected" class="card modal">
+    <OverlayCard v-if="selected" @close="selected = null">
       <h2>Donación #{{ selected.id }}</h2>
+      <p v-if="error" class="flash flash-error">{{ error }}</p>
       <p>{{ selected.notes || 'Sin notas' }}</p>
       <div v-for="item in selected.items" :key="item.id" class="map">
         <span>{{ item.productName }} × {{ item.quantity }}</span>
@@ -113,7 +120,7 @@ async function save() {
         <button class="btn btn-ghost" type="button" @click="selected = null">Cerrar</button>
         <button class="btn btn-primary" type="button" @click="save">Guardar</button>
       </div>
-    </div>
+    </OverlayCard>
   </section>
 </template>
 
@@ -121,7 +128,7 @@ async function save() {
 h1 { font-size: clamp(1.6rem, 7vw, 2.2rem); }
 .lead { color: var(--ink-soft); }
 .card { margin-top: 1rem; padding: 1rem; }
-.modal, .map { display: grid; gap: 0.8rem; }
+.map { display: grid; gap: 0.8rem; }
 .map { grid-template-columns: 1fr; align-items: center; }
 .actions { display: flex; gap: 0.6rem; justify-content: flex-end; }
 @media (min-width: 720px) {

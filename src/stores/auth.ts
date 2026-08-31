@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import api from '@/api/client'
-import type { AvailabilitySlot, User } from '@/types'
+import type { AvailabilitySlot, AttendanceRecord, User } from '@/types'
 
 const TOKEN_KEY = 'abrigar_token'
 const USER_KEY = 'abrigar_user'
@@ -65,6 +65,24 @@ export const useAuthStore = defineStore('auth', () => {
     return data
   }
 
+  function persistAttendances(rows: AttendanceRecord[]) {
+    if (!user.value) return
+    user.value = { ...user.value, attendances: rows }
+    localStorage.setItem(USER_KEY, JSON.stringify(user.value))
+  }
+
+  async function addAttendance(payload: { date: string; startTime: string; endTime: string }) {
+    const { data } = await api.post<AttendanceRecord[]>('/auth/me/attendance', payload)
+    persistAttendances(data)
+    return data
+  }
+
+  async function removeAttendance(id: number) {
+    const { data } = await api.delete<AttendanceRecord[]>(`/auth/me/attendance/${id}`)
+    persistAttendances(data)
+    return data
+  }
+
   function logout() {
     token.value = null
     user.value = null
@@ -84,6 +102,8 @@ export const useAuthStore = defineStore('auth', () => {
     fetchMe,
     updateProfile,
     saveAvailability,
+    addAttendance,
+    removeAttendance,
     logout,
   }
 })

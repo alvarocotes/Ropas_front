@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import api, { apiErrorMessage } from '@/api/client'
+import OverlayCard from '@/components/OverlayCard.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
+import { useLiveReload } from '@/composables/useLiveReload'
 import { useAuthStore } from '@/stores/auth'
 import type { HelpRequest, Product, RequestStatus } from '@/types'
 import { formatHousehold, requestStatusLabel } from '@/types'
@@ -104,7 +106,7 @@ function responsible(request: HelpRequest) {
   return request.assignedTo?.fullName ?? 'Sin asignar'
 }
 
-async function load() {
+async function load(opts?: { quiet?: boolean }) {
   try {
     const canSeeInventory = auth.canHandleInventory || auth.isAdmin || auth.isReception
     // En paralelo para no sumar dos idas y vueltas al servidor.
@@ -118,12 +120,16 @@ async function load() {
       newItem.value.productId = products.value[0].id
     }
   } catch (err) {
-    error.value = apiErrorMessage(err)
+    if (!opts?.quiet) error.value = apiErrorMessage(err)
   }
 }
 
 onMounted(() => {
   void load()
+})
+
+useLiveReload(() => load({ quiet: true }), {
+  paused: () => Boolean(selected.value) || itemBusy.value || busyId.value !== null,
 })
 
 async function claim(request: HelpRequest) {
@@ -266,7 +272,7 @@ async function save() {
         recepción para el transporte.
       </template>
     </p>
-    <p v-if="error" class="flash flash-error">{{ error }}</p>
+    <p v-if="error && !selected" class="flash flash-error">{{ error }}</p>
 
     <div class="tabs">
       <button
@@ -345,8 +351,9 @@ async function save() {
       </table>
     </div>
 
-    <div v-if="selected" class="card modal">
+    <OverlayCard v-if="selected" wide @close="selected = null">
       <h2>Solicitud #{{ selected.id }}</h2>
+      <p v-if="error" class="flash flash-error">{{ error }}</p>
       <p class="muted">
         Recibida el {{ new Date(selected.createdAt).toLocaleString('es') }}
       </p>
@@ -514,7 +521,7 @@ async function save() {
           Guardar
         </button>
       </div>
-    </div>
+    </OverlayCard>
   </section>
 </template>
 
@@ -532,7 +539,6 @@ h1 { font-size: clamp(1.6rem, 7vw, 2.2rem); }
   color: var(--ink-soft);
 }
 .card { margin-top: 1rem; padding: 1rem; }
-.modal { display: grid; gap: 0.8rem; }
 .actions { display: flex; gap: 0.6rem; justify-content: flex-end; flex-wrap: wrap; }
 .row-actions { display: flex; gap: 0.4rem; flex-wrap: wrap; }
 .tabs {

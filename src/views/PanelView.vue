@@ -3,9 +3,10 @@ import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import api from '@/api/client'
 import StatusBadge from '@/components/StatusBadge.vue'
+import { useLiveReload } from '@/composables/useLiveReload'
 import { useAuthStore } from '@/stores/auth'
-import type { Donation, HelpRequest, Product, TimeVolunteer, VolunteerSchedule } from '@/types'
-import { donationStatusLabel, isoWeekday, requestStatusLabel } from '@/types'
+import type { Donation, HelpRequest, Product, StaffAttendance, TimeVolunteer } from '@/types'
+import { donationStatusLabel, isoWeekday, localIsoDate, requestStatusLabel, roleLabel } from '@/types'
 
 const auth = useAuthStore()
 
@@ -13,24 +14,14 @@ const alerts = ref<Product[]>([])
 const requests = ref<HelpRequest[]>([])
 const readyRequests = ref<HelpRequest[]>([])
 const donations = ref<Donation[]>([])
-const schedule = ref<VolunteerSchedule[]>([])
+const schedule = ref<StaffAttendance[]>([])
 const timeVolunteers = ref<TimeVolunteer[]>([])
 const loading = ref(true)
 
 const showInventory = computed(() => auth.canHandleInventory)
-const showStaffSchedule = computed(
-  () => auth.isAdmin || auth.user?.role === 'volunteer',
-)
 const canManageTransport = computed(() => auth.canManageTransport)
+const today = localIsoDate()
 const todayIso = isoWeekday()
-const todayVolunteers = computed(() =>
-  schedule.value
-    .map((volunteer) => ({
-      ...volunteer,
-      slot: volunteer.availability.find((item) => item.weekday === todayIso),
-    }))
-    .filter((volunteer) => volunteer.slot),
-)
 const newTimeVolunteers = computed(() =>
   timeVolunteers.value.filter((item) => item.status === 'nuevo'),
 )
@@ -43,14 +34,20 @@ const todayTimeVolunteers = computed(() =>
     .filter((person) => person.slot && person.status !== 'no_disponible'),
 )
 
-onMounted(async () => {
+onMounted(() => {
+  void load()
+})
+
+useLiveReload(() => load({ quiet: true }))
+
+async function load(opts?: { quiet?: boolean }) {
   try {
     // Todo en paralelo: en producción cada ida y vuelta al servidor cuesta.
     const [requestRes, alertRes, donationRes, scheduleRes, timeRes] = await Promise.all([
       api.get<HelpRequest[]>('/help-requests'),
       showInventory.value ? api.get<Product[]>('/inventory/alerts') : null,
       showInventory.value ? api.get<Donation[]>('/donations') : null,
-      showStaffSchedule.value ? api.get<VolunteerSchedule[]>('/stats/volunteer-schedule') : null,
+      api.get<StaffAttendance[]>('/stats/staff-attendance', { params: { date: today } }),
       canManageTransport.value ? api.get<TimeVolunteer[]>('/time-volunteers') : null,
     ])
     requests.value = requestRes.data.filter(
@@ -63,10 +60,14 @@ onMounted(async () => {
     )
     schedule.value = scheduleRes?.data ?? []
     timeVolunteers.value = timeRes?.data ?? []
+  } catch {
+    if (!opts?.quiet) {
+      /* el panel no muestra un error global; las tarjetas quedan vacías */
+    }
   } finally {
     loading.value = false
   }
-})
+}
 </script>
 
 <template>
@@ -76,20 +77,19 @@ onMounted(async () => {
 
     <div v-if="loading">Cargando...</div>
     <div v-else class="grid">
-      <article v-if="showStaffSchedule" class="card block">
+      <article class="card block">
         <div class="head">
-          <h2>Voluntarios hoy</h2>
-          <RouterLink v-if="auth.isAdmin" to="/usuarios">Ver horarios</RouterLink>
-          <RouterLink v-else-if="auth.user?.role === 'volunteer'" to="/horario">Mi horario</RouterLink>
+          <h2>Equipo hoy</h2>
+          <RouterLink to="/horario">Mi horario</RouterLink>
         </div>
-        <p v-if="todayVolunteers.length === 0">Nadie registró horario para hoy.</p>
+        <p v-if="schedule.length === 0">Nadie registró una fecha para hoy.</p>
         <ul>
-          <li v-for="volunteer in todayVolunteers" :key="volunteer.id">
-            <span>{{ volunteer.fullName }}</span>
-            <StatusBadge
-              tone="listo"
-              :label="`${volunteer.slot?.startTime} – ${volunteer.slot?.endTime}`"
-            />
+          <li v-for="person in schedule" :key="person.id">
+            <span>
+              {{ person.fullName }}
+              <small class="muted">— {{ roleLabel[person.role] }}</small>
+            </span>
+            <StatusBadge tone="listo" :label="`${person.startTime} – ${person.endTime}`" />
           </li>
         </ul>
       </article>

@@ -26,6 +26,7 @@ export interface User {
   isActive: boolean
   createdAt: string
   availability?: AvailabilitySlot[]
+  attendances?: AttendanceRecord[]
 }
 
 export interface AvailabilitySlot {
@@ -34,10 +35,27 @@ export interface AvailabilitySlot {
   endTime: string
 }
 
+export interface AttendanceRecord {
+  id: number
+  date: string
+  startTime: string
+  endTime: string
+}
+
 export interface VolunteerSchedule {
   id: number
   fullName: string
   availability: AvailabilitySlot[]
+}
+
+export interface StaffAttendance {
+  id: number
+  userId: number
+  fullName: string
+  role: UserRole
+  date: string
+  startTime: string
+  endTime: string
 }
 
 export const WEEKDAYS: { value: number; label: string; short: string }[] = [
@@ -63,6 +81,36 @@ export function formatAvailability(slots?: AvailabilitySlot[]): string {
       const day = WEEKDAYS.find((item) => item.value === slot.weekday)
       return `${day?.short ?? slot.weekday} ${slot.startTime}–${slot.endTime}`
     })
+    .join(' · ')
+}
+
+/** Fecha local YYYY-MM-DD, sin UTC. */
+export function localIsoDate(date = new Date()): string {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+export function formatWorkDate(iso: string): string {
+  const [year, month, day] = iso.split('-').map(Number)
+  if (!year || !month || !day) return iso
+  return new Date(year, month - 1, day).toLocaleDateString('es-CO', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  })
+}
+
+/** Próximas fechas de asistencia (hoy en adelante), para listados. */
+export function formatAttendances(rows?: AttendanceRecord[], fromDate = localIsoDate()): string {
+  const upcoming = [...(rows ?? [])]
+    .filter((row) => row.date >= fromDate)
+    .sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime))
+  if (!upcoming.length) return 'Sin fechas'
+  return upcoming
+    .slice(0, 4)
+    .map((row) => `${formatWorkDate(row.date)} ${row.startTime}–${row.endTime}`)
     .join(' · ')
 }
 

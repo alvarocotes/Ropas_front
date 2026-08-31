@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
 import api, { apiErrorMessage } from '@/api/client'
+import OverlayCard from '@/components/OverlayCard.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
+import { useLiveReload } from '@/composables/useLiveReload'
 import { useAuthStore } from '@/stores/auth'
 import type { User, UserRole } from '@/types'
-import { formatAvailability, roleLabel } from '@/types'
+import { formatAttendances, roleLabel } from '@/types'
 
 const auth = useAuthStore()
 const users = ref<User[]>([])
@@ -25,18 +27,22 @@ const emptyForm = () => ({
 
 const form = reactive(emptyForm())
 
-async function load() {
+async function load(opts?: { quiet?: boolean }) {
   try {
     const { data } = await api.get<User[]>('/users')
     users.value = data
-    error.value = ''
+    if (!opts?.quiet) error.value = ''
   } catch (err) {
-    error.value = apiErrorMessage(err)
+    if (!opts?.quiet) error.value = apiErrorMessage(err)
   }
 }
 
 onMounted(() => {
   void load()
+})
+
+useLiveReload(() => load({ quiet: true }), {
+  paused: () => showCreate.value || Boolean(editing.value) || saving.value,
 })
 
 function resetForm() {
@@ -161,11 +167,13 @@ async function toggleActive(user: User) {
         </button>
       </div>
     </div>
-    <p v-if="error" class="flash flash-error">{{ error }}</p>
-    <p v-if="flash" class="flash flash-ok">{{ flash }}</p>
+    <p v-if="error && !showCreate && !editing" class="flash flash-error">{{ error }}</p>
+    <p v-if="flash && !showCreate && !editing" class="flash flash-ok">{{ flash }}</p>
 
-    <form v-if="showCreate || editing" class="card form" @submit.prevent="saveUser">
+    <OverlayCard v-if="showCreate || editing" @close="cancelForm">
+    <form class="form" @submit.prevent="saveUser">
       <h2>{{ editing ? `Editar a ${editing.fullName}` : 'Crear cuenta' }}</h2>
+      <p v-if="error" class="flash flash-error">{{ error }}</p>
       <label class="field">
         <span>Nombre</span>
         <input v-model="form.fullName" required minlength="2" autocomplete="name" />
@@ -208,6 +216,7 @@ async function toggleActive(user: User) {
         </button>
       </div>
     </form>
+    </OverlayCard>
 
     <div class="card table-wrap">
       <table>
@@ -230,7 +239,7 @@ async function toggleActive(user: User) {
             <td data-label="Correo">{{ user.email }}</td>
             <td data-label="Rol">{{ roleLabel[user.role] }}</td>
             <td data-label="Horario">
-              {{ user.role === 'volunteer' ? formatAvailability(user.availability) : '—' }}
+              {{ formatAttendances(user.attendances) }}
             </td>
             <td data-label="Estado">
               <StatusBadge :tone="user.isActive ? 'listo' : 'cancelado'" :label="user.isActive ? 'Activo' : 'Inactivo'" />
@@ -258,7 +267,8 @@ async function toggleActive(user: User) {
 <style scoped>
 h1 { font-size: clamp(1.6rem, 7vw, 2.2rem); }
 .lead, .muted { color: var(--ink-soft); }
-.form, .table-wrap { margin-top: 1rem; padding: 1.1rem; display: grid; gap: 0.8rem; }
+.form { display: grid; gap: 0.8rem; }
+.table-wrap { margin-top: 1rem; padding: 1.1rem; display: grid; gap: 0.8rem; }
 .row-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; }
 .check {
   display: flex;

@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import api, { apiErrorMessage } from '@/api/client'
+import OverlayCard from '@/components/OverlayCard.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
+import { useLiveReload } from '@/composables/useLiveReload'
 import { useAuthStore } from '@/stores/auth'
 import type { Product } from '@/types'
 
@@ -41,7 +43,7 @@ const filteredProducts = computed(() => {
   })
 })
 
-async function load() {
+async function load(opts?: { quiet?: boolean }) {
   try {
     const { data } = await api.get<Product[]>('/inventory/products')
     products.value = data
@@ -51,12 +53,16 @@ async function load() {
       }
     }
   } catch (err) {
-    error.value = apiErrorMessage(err)
+    if (!opts?.quiet) error.value = apiErrorMessage(err)
   }
 }
 
 onMounted(() => {
   void load()
+})
+
+useLiveReload(() => load({ quiet: true }), {
+  paused: () => busyId.value !== null || savingEdit.value,
 })
 
 async function createProduct() {
@@ -196,10 +202,12 @@ function isLow(product: Product) {
         </button>
       </div>
     </div>
-    <p v-if="error" class="flash flash-error">{{ error }}</p>
+    <p v-if="error && !showCreate" class="flash flash-error">{{ error }}</p>
 
-    <form v-if="showCreate" class="card form" @submit.prevent="createProduct">
+    <OverlayCard v-if="showCreate" @close="cancelCreate">
+    <form class="form" @submit.prevent="createProduct">
       <h2>Nuevo producto</h2>
+      <p v-if="error" class="flash flash-error">{{ error }}</p>
       <label class="field"><span>Nombre</span><input v-model="productForm.name" required /></label>
       <label class="field"><span>Unidad</span><input v-model="productForm.unit" /></label>
       <label class="field"><span>Cantidad inicial</span><input v-model.number="productForm.quantity" type="number" min="0" /></label>
@@ -217,6 +225,7 @@ function isLow(product: Product) {
         <button class="btn btn-primary" type="submit">Crear</button>
       </div>
     </form>
+    </OverlayCard>
 
     <div class="block-head">
       <h2>Existencias</h2>
@@ -369,7 +378,7 @@ function isLow(product: Product) {
 <style scoped>
 h1 { font-size: clamp(1.6rem, 7vw, 2.2rem); }
 .lead { color: var(--ink-soft); }
-.form { padding: 1.1rem; margin-top: 1rem; display: grid; gap: 0.8rem; }
+.form { display: grid; gap: 0.8rem; }
 .mini { width: 90px; border: 1px solid var(--line); border-radius: 8px; padding: 0.3rem 0.4rem; }
 .hint { color: var(--ink-soft); font-size: 0.9rem; margin: -0.3rem 0 0.2rem; }
 .block-head { margin-top: 1.1rem; }

@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import api, { apiErrorMessage } from '@/api/client'
+import OverlayCard from '@/components/OverlayCard.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
+import { useLiveReload } from '@/composables/useLiveReload'
 import type { AvailabilitySlot, TimeVolunteer, TimeVolunteerHelpType, TimeVolunteerStatus, VehicleKind } from '@/types'
 import {
   formatAvailability,
@@ -84,17 +86,21 @@ function toHm(value: string) {
   return `${hours.padStart(2, '0')}:${minutes}`
 }
 
-async function load() {
+async function load(opts?: { quiet?: boolean }) {
   try {
     const { data } = await api.get<TimeVolunteer[]>('/time-volunteers')
     people.value = data
   } catch (err) {
-    error.value = apiErrorMessage(err)
+    if (!opts?.quiet) error.value = apiErrorMessage(err)
   }
 }
 
 onMounted(() => {
   void load()
+})
+
+useLiveReload(() => load({ quiet: true }), {
+  paused: () => Boolean(selected.value) || showCreate.value || saving.value,
 })
 
 function open(person: TimeVolunteer) {
@@ -227,11 +233,13 @@ async function save() {
       </div>
     </div>
 
-    <p v-if="error" class="flash flash-error">{{ error }}</p>
-    <p v-if="flash" class="flash flash-ok">{{ flash }}</p>
+    <p v-if="error && !showCreate && !selected" class="flash flash-error">{{ error }}</p>
+    <p v-if="flash && !showCreate && !selected" class="flash flash-ok">{{ flash }}</p>
 
-    <form v-if="showCreate" class="card form" @submit.prevent="createPerson">
+    <OverlayCard v-if="showCreate" wide @close="cancelCreate">
+    <form class="form" @submit.prevent="createPerson">
       <h2>Agregar persona</h2>
+      <p v-if="error" class="flash flash-error">{{ error }}</p>
       <label class="field">
         <span>Cómo ayuda</span>
         <select v-model="createForm.helpType">
@@ -293,6 +301,7 @@ async function save() {
         </button>
       </div>
     </form>
+    </OverlayCard>
 
     <div class="tabs">
       <button type="button" class="tab" :class="{ active: tab === 'nuevos' }" @click="tab = 'nuevos'">
@@ -368,8 +377,9 @@ async function save() {
       </table>
     </div>
 
-    <div v-if="selected" class="card modal">
+    <OverlayCard v-if="selected" @close="selected = null">
       <h2>{{ selected.fullName }}</h2>
+      <p v-if="error" class="flash flash-error">{{ error }}</p>
       <p class="muted">
         Registrado el {{ new Date(selected.createdAt).toLocaleString('es') }}
       </p>
@@ -415,7 +425,7 @@ async function save() {
           </button>
         </div>
       </form>
-    </div>
+    </OverlayCard>
   </section>
 </template>
 
@@ -479,10 +489,6 @@ h1 {
 .form {
   display: grid;
   gap: 0.8rem;
-}
-.modal {
-  margin-top: 1rem;
-  padding: 1.1rem;
 }
 .check {
   display: flex;

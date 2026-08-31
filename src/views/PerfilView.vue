@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
-import VolunteerScheduleEditor from '@/components/VolunteerScheduleEditor.vue'
+import { onMounted, reactive, ref } from 'vue'
+import AttendanceEditor from '@/components/AttendanceEditor.vue'
 import { useAuthStore } from '@/stores/auth'
 import { apiErrorMessage } from '@/api/client'
 
@@ -16,8 +16,6 @@ const profile = reactive({
   currentPassword: '',
   password: '',
 })
-
-const isVolunteer = computed(() => auth.user?.role === 'volunteer')
 
 function fillFromUser() {
   const user = auth.user
@@ -118,8 +116,7 @@ async function saveProfile() {
       </div>
     </form>
 
-    <VolunteerScheduleEditor
-      v-if="isVolunteer"
+    <AttendanceEditor
       @error="(message) => { error = message; flash = '' }"
       @saved="(message) => { flash = message; error = '' }"
     />

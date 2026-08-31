@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import api, { apiErrorMessage } from '@/api/client'
+import OverlayCard from '@/components/OverlayCard.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
+import { useLiveReload } from '@/composables/useLiveReload'
 import type { InventoryMovement, Product } from '@/types'
 import { movementTypeLabel } from '@/types'
 
@@ -18,7 +20,7 @@ const form = reactive({
 
 const hasProducts = computed(() => products.value.length > 0)
 
-async function load() {
+async function load(opts?: { quiet?: boolean }) {
   try {
     const [productRes, movementRes] = await Promise.all([
       api.get<Product[]>('/inventory/products'),
@@ -30,13 +32,15 @@ async function load() {
       form.productId = products.value[0].id
     }
   } catch (err) {
-    error.value = apiErrorMessage(err)
+    if (!opts?.quiet) error.value = apiErrorMessage(err)
   }
 }
 
 onMounted(() => {
   void load()
 })
+
+useLiveReload(() => load({ quiet: true }))
 
 function cancelCreate() {
   showCreate.value = false
@@ -76,10 +80,12 @@ async function registerMovement() {
         </button>
       </div>
     </div>
-    <p v-if="error" class="flash flash-error">{{ error }}</p>
+    <p v-if="error && !showCreate" class="flash flash-error">{{ error }}</p>
 
-    <form v-if="showCreate" class="card form" @submit.prevent="registerMovement">
+    <OverlayCard v-if="showCreate" @close="cancelCreate">
+    <form class="form" @submit.prevent="registerMovement">
       <h2>Registrar movimiento</h2>
+      <p v-if="error" class="flash flash-error">{{ error }}</p>
       <p class="hint">Usa una nota cuando la entrada o salida necesite un detalle escrito.</p>
       <label class="field">
         <span>Producto</span>
@@ -109,6 +115,7 @@ async function registerMovement() {
         <button class="btn btn-primary" type="submit">Guardar</button>
       </div>
     </form>
+    </OverlayCard>
 
     <div v-if="movements.length === 0" class="card empty">
       <template v-if="!hasProducts">
@@ -154,7 +161,8 @@ async function registerMovement() {
 <style scoped>
 h1 { font-size: clamp(1.6rem, 7vw, 2.2rem); }
 .lead { color: var(--ink-soft); }
-.form, .table-wrap { margin-top: 1rem; padding: 1.1rem; display: grid; gap: 0.8rem; }
+.form { display: grid; gap: 0.8rem; }
+.table-wrap { margin-top: 1rem; padding: 1.1rem; display: grid; gap: 0.8rem; }
 .hint { color: var(--ink-soft); font-size: 0.9rem; margin: -0.3rem 0 0.2rem; }
 .empty { padding: 1.1rem; color: var(--ink-soft); margin-top: 1rem; }
 </style>

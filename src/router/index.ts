@@ -86,7 +86,6 @@ const router = createRouter({
         {
           path: '/horario',
           name: 'horario',
-          meta: { roles: ['volunteer'] },
           component: () => import('@/views/HorarioView.vue'),
         },
         {
