@@ -4,7 +4,7 @@ import api, { apiErrorMessage } from '@/api/client'
 import StatusBadge from '@/components/StatusBadge.vue'
 import { useAuthStore } from '@/stores/auth'
 import type { HelpRequest, Product, RequestStatus } from '@/types'
-import { requestStatusLabel } from '@/types'
+import { formatHousehold, requestStatusLabel } from '@/types'
 
 type Tab = 'sin-asignar' | 'mias' | 'transporte' | 'todas'
 
@@ -303,7 +303,7 @@ async function save() {
               <div class="muted">{{ request.phoneWhatsapp }}</div>
             </td>
             <td data-label="Entrega">{{ request.residenceAfter }}</td>
-            <td data-label="Personas">{{ request.peopleCount }}</td>
+            <td data-label="Personas">{{ formatHousehold(request) }}</td>
             <td data-label="Responsable">{{ responsible(request) }}</td>
             <td data-label="Estado">
               <StatusBadge :tone="request.status" :label="requestStatusLabel[request.status]" />
@@ -368,7 +368,7 @@ async function save() {
           <dt>Alcance</dt>
           <dd>{{ selected.clothingScope === 'comunidad' ? 'También comunidad' : 'Núcleo familiar' }}</dd>
         </div>
-        <div><dt>Personas</dt><dd>{{ selected.peopleCount }}</dd></div>
+        <div class="wide"><dt>Personas</dt><dd>{{ formatHousehold(selected) }} ({{ selected.peopleCount }})</dd></div>
         <div><dt>Transporte propio</dt><dd>{{ yesNo(selected.hasOwnTransport) }}</dd></div>
         <div><dt>Bebé</dt><dd>{{ dash(selected.babySizes) }}</dd></div>
         <div><dt>Niña — camisas</dt><dd>{{ dash(selected.girlShirtSizes) }}</dd></div>

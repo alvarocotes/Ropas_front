@@ -66,6 +66,44 @@ export function formatAvailability(slots?: AvailabilitySlot[]): string {
     .join(' · ')
 }
 
+export function whatsappHref(phone: string): string {
+  const digits = phone.replace(/\D/g, '')
+  if (!digits) return ''
+  const intl = digits.length === 10 ? `57${digits}` : digits
+  return `https://wa.me/${intl}`
+}
+
+export type TimeVolunteerStatus = 'nuevo' | 'contactado' | 'confirmado' | 'no_disponible'
+
+export const timeVolunteerStatusLabel: Record<TimeVolunteerStatus, string> = {
+  nuevo: 'Nuevo',
+  contactado: 'Contactado',
+  confirmado: 'Confirmado',
+  no_disponible: 'No disponible',
+}
+
+export const timeVolunteerStatusTone: Record<
+  TimeVolunteerStatus,
+  'recibido' | 'en_proceso' | 'listo' | 'cancelado'
+> = {
+  nuevo: 'recibido',
+  contactado: 'en_proceso',
+  confirmado: 'listo',
+  no_disponible: 'cancelado',
+}
+
+export interface TimeVolunteer {
+  id: number
+  fullName: string
+  phone: string
+  email: string | null
+  notes: string | null
+  staffNotes: string | null
+  status: TimeVolunteerStatus
+  createdAt: string
+  availability: AvailabilitySlot[]
+}
+
 export interface Product {
   id: number
   name: string
@@ -126,6 +164,11 @@ export interface HelpRequest {
   clothingScope: 'familiar' | 'comunidad'
   source?: 'formulario' | 'historial'
   peopleCount: number
+  womenCount: number
+  menCount: number
+  girlsCount: number
+  boysCount: number
+  babiesCount: number
   hasOwnTransport: boolean
   babySizes: string | null
   girlShirtSizes: string | null
@@ -153,6 +196,33 @@ export interface HelpRequest {
   readyAt: string | null
   deliveredAt: string | null
   createdAt: string
+}
+
+function countLabel(count: number, singular: string, plural: string) {
+  if (count <= 0) return ''
+  return `${count} ${count === 1 ? singular : plural}`
+}
+
+/** Desglose de personas de una solicitud (mujeres, hombres, niñas, niños, bebés). */
+export function formatHousehold(request: {
+  peopleCount: number
+  womenCount?: number | null
+  menCount?: number | null
+  girlsCount?: number | null
+  boysCount?: number | null
+  babiesCount?: number | null
+}): string {
+  const parts = [
+    countLabel(request.womenCount ?? 0, 'mujer', 'mujeres'),
+    countLabel(request.menCount ?? 0, 'hombre', 'hombres'),
+    countLabel(request.girlsCount ?? 0, 'niña', 'niñas'),
+    countLabel(request.boysCount ?? 0, 'niño', 'niños'),
+    countLabel(request.babiesCount ?? 0, 'bebé', 'bebés'),
+  ].filter(Boolean)
+  if (!parts.length) {
+    return `${request.peopleCount} persona${request.peopleCount === 1 ? '' : 's'}`
+  }
+  return parts.join(', ')
 }
 
 export interface PublicNeed {

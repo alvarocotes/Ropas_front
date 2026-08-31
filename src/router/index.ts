@@ -28,6 +28,11 @@ const router = createRouter({
           component: () => import('@/views/SolicitarAyudaView.vue'),
         },
         { path: 'donar', name: 'donar', component: () => import('@/views/DonarView.vue') },
+        {
+          path: 'ayudar',
+          name: 'ayudar',
+          component: () => import('@/views/AyudarView.vue'),
+        },
       ],
     },
     { path: '/login', name: 'login', component: () => import('@/views/LoginView.vue') },
@@ -71,6 +76,12 @@ const router = createRouter({
           name: 'contenido',
           meta: { admin: true },
           component: () => import('@/views/ContenidoAdminView.vue'),
+        },
+        {
+          path: '/voluntarios-tiempo',
+          name: 'voluntarios-tiempo',
+          meta: { roles: ['admin', 'reception'] },
+          component: () => import('@/views/VoluntariosTiempoView.vue'),
         },
         {
           path: '/horario',

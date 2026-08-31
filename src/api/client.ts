@@ -24,7 +24,7 @@ api.interceptors.response.use(
   (response) => response,
   (error: unknown) => {
     if (axios.isAxiosError(error) && error.response?.status === 401) {
-      const publicPaths = ['/', '/login', '/necesidades', '/solicitar-ayuda', '/donar']
+      const publicPaths = ['/', '/login', '/necesidades', '/solicitar-ayuda', '/donar', '/ayudar', '/nosotros']
       const onPublic = publicPaths.includes(window.location.pathname)
       const onLogin = window.location.pathname === '/login'
       if (!onPublic && !onLogin && !error.config?.url?.includes('/auth/login')) {

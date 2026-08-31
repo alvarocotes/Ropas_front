@@ -4,7 +4,7 @@ import { RouterLink } from 'vue-router'
 import api from '@/api/client'
 import StatusBadge from '@/components/StatusBadge.vue'
 import { useAuthStore } from '@/stores/auth'
-import type { Donation, HelpRequest, Product, VolunteerSchedule } from '@/types'
+import type { Donation, HelpRequest, Product, TimeVolunteer, VolunteerSchedule } from '@/types'
 import { donationStatusLabel, isoWeekday, requestStatusLabel } from '@/types'
 
 const auth = useAuthStore()
@@ -14,9 +14,11 @@ const requests = ref<HelpRequest[]>([])
 const readyRequests = ref<HelpRequest[]>([])
 const donations = ref<Donation[]>([])
 const schedule = ref<VolunteerSchedule[]>([])
+const timeVolunteers = ref<TimeVolunteer[]>([])
 const loading = ref(true)
 
 const showInventory = computed(() => auth.canHandleInventory)
+const canCoordinateTime = computed(() => auth.isAdmin || auth.isReception)
 const todayIso = isoWeekday()
 const todayVolunteers = computed(() =>
   schedule.value
@@ -26,15 +28,27 @@ const todayVolunteers = computed(() =>
     }))
     .filter((volunteer) => volunteer.slot),
 )
+const newTimeVolunteers = computed(() =>
+  timeVolunteers.value.filter((item) => item.status === 'nuevo'),
+)
+const todayTimeVolunteers = computed(() =>
+  timeVolunteers.value
+    .map((person) => ({
+      ...person,
+      slot: person.availability.find((item) => item.weekday === todayIso),
+    }))
+    .filter((person) => person.slot && person.status !== 'no_disponible'),
+)
 
 onMounted(async () => {
   try {
     // Todo en paralelo: en producción cada ida y vuelta al servidor cuesta.
-    const [requestRes, alertRes, donationRes, scheduleRes] = await Promise.all([
+    const [requestRes, alertRes, donationRes, scheduleRes, timeRes] = await Promise.all([
       api.get<HelpRequest[]>('/help-requests'),
       showInventory.value ? api.get<Product[]>('/inventory/alerts') : null,
       showInventory.value ? api.get<Donation[]>('/donations') : null,
       api.get<VolunteerSchedule[]>('/stats/volunteer-schedule'),
+      canCoordinateTime.value ? api.get<TimeVolunteer[]>('/time-volunteers') : null,
     ])
     requests.value = requestRes.data.filter(
       (item) => item.status === 'recibido' || item.status === 'en_proceso',
@@ -45,6 +59,7 @@ onMounted(async () => {
       (item) => item.status === 'recibido' || item.status === 'en_proceso',
     )
     schedule.value = scheduleRes.data
+    timeVolunteers.value = timeRes?.data ?? []
   } finally {
     loading.value = false
   }
@@ -62,6 +77,7 @@ onMounted(async () => {
         <div class="head">
           <h2>Voluntarios hoy</h2>
           <RouterLink v-if="auth.isAdmin" to="/usuarios">Ver horarios</RouterLink>
+          <RouterLink v-else-if="auth.isReception" to="/voluntarios-tiempo">Ver registro</RouterLink>
           <RouterLink v-else-if="auth.user?.role === 'volunteer'" to="/horario">Mi horario</RouterLink>
         </div>
         <p v-if="todayVolunteers.length === 0">Nadie registró horario para hoy.</p>
@@ -75,6 +91,28 @@ onMounted(async () => {
           </li>
         </ul>
       </article>
+
+      <article v-if="canCoordinateTime" class="card block">
+        <div class="head">
+          <h2>Quieren ayudar con tiempo</h2>
+          <RouterLink to="/voluntarios-tiempo">Coordinar</RouterLink>
+        </div>
+        <p v-if="newTimeVolunteers.length">
+          {{ newTimeVolunteers.length }} registro{{ newTimeVolunteers.length === 1 ? '' : 's' }}
+          nuevo{{ newTimeVolunteers.length === 1 ? '' : 's' }} por contactar.
+        </p>
+        <p v-else-if="todayTimeVolunteers.length === 0">Nadie del público marcó horario para hoy.</p>
+        <ul v-if="todayTimeVolunteers.length">
+          <li v-for="person in todayTimeVolunteers" :key="person.id">
+            <span>
+              {{ person.fullName }}
+              <small class="muted">— {{ person.phone }}</small>
+            </span>
+            <StatusBadge tone="listo" :label="`${person.slot?.startTime} – ${person.slot?.endTime}`" />
+          </li>
+        </ul>
+      </article>
+
       <article v-if="showInventory" class="card block">
         <div class="head">
           <h2>Alertas de inventario</h2>

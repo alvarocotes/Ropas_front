@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
+import { reactive, computed, ref } from 'vue'
 import api, { apiErrorMessage } from '@/api/client'
 
 const DIAPER_STAGES = [
@@ -19,7 +19,11 @@ const emptyForm = () => ({
   phoneWhatsapp: '',
   affectationType: '',
   clothingScope: 'familiar' as 'familiar' | 'comunidad',
-  peopleCount: 1,
+  womenCount: 0,
+  menCount: 0,
+  girlsCount: 0,
+  boysCount: 0,
+  babiesCount: 0,
   hasOwnTransport: 'no' as 'si' | 'no',
   babySizes: '',
   girlShirtSizes: '',
@@ -43,6 +47,21 @@ const sending = ref(false)
 const ok = ref(false)
 const error = ref('')
 
+function asCount(value: unknown) {
+  const n = Number(value)
+  if (!Number.isFinite(n) || n < 0) return 0
+  return Math.floor(n)
+}
+
+const peopleCount = computed(
+  () =>
+    asCount(form.womenCount) +
+    asCount(form.menCount) +
+    asCount(form.girlsCount) +
+    asCount(form.boysCount) +
+    asCount(form.babiesCount),
+)
+
 function onDiapersChange() {
   if (form.needsDiapers === 'no') {
     form.diaperStages = []
@@ -62,6 +81,11 @@ async function submit() {
   sending.value = true
   error.value = ''
   ok.value = false
+  if (peopleCount.value < 1) {
+    error.value = 'Indica cuántas mujeres, hombres, niñas, niños y bebés necesitan ropa.'
+    sending.value = false
+    return
+  }
   if (form.needsDiapers === 'si' && form.diaperStages.length === 0) {
     error.value = 'Elige la etapa de pañal que necesitas.'
     sending.value = false
@@ -71,6 +95,12 @@ async function submit() {
     const { diaperStages, ...fields } = form
     await api.post('/help-requests', {
       ...fields,
+      womenCount: asCount(form.womenCount),
+      menCount: asCount(form.menCount),
+      girlsCount: asCount(form.girlsCount),
+      boysCount: asCount(form.boysCount),
+      babiesCount: asCount(form.babiesCount),
+      peopleCount: peopleCount.value,
       hasOwnTransport: form.hasOwnTransport === 'si',
       needsLinens: form.needsLinens === 'si',
       needsDiapers: form.needsDiapers === 'si',
@@ -148,19 +178,37 @@ async function submit() {
             <option value="comunidad">También para mi comunidad</option>
           </select>
         </label>
-        <div class="grid-2">
+        <p class="hint">¿Cuántas personas de cada grupo necesitan ropa? Pon 0 si no aplica.</p>
+        <div class="people-grid">
           <label class="field">
-            <span>Número aproximado de personas que necesitan ropa</span>
-            <input v-model.number="form.peopleCount" type="number" min="1" required />
+            <span>Mujeres adultas</span>
+            <input v-model.number="form.womenCount" type="number" min="0" max="200" required />
           </label>
           <label class="field">
-            <span>¿Tiene transporte propio para recoger la ropa?</span>
-            <select v-model="form.hasOwnTransport" required>
-              <option value="no">No</option>
-              <option value="si">Sí</option>
-            </select>
+            <span>Hombres adultos</span>
+            <input v-model.number="form.menCount" type="number" min="0" max="200" required />
+          </label>
+          <label class="field">
+            <span>Niñas</span>
+            <input v-model.number="form.girlsCount" type="number" min="0" max="200" required />
+          </label>
+          <label class="field">
+            <span>Niños</span>
+            <input v-model.number="form.boysCount" type="number" min="0" max="200" required />
+          </label>
+          <label class="field">
+            <span>Bebés</span>
+            <input v-model.number="form.babiesCount" type="number" min="0" max="200" required />
           </label>
         </div>
+        <p class="total">Total: {{ peopleCount }} persona{{ peopleCount === 1 ? '' : 's' }}</p>
+        <label class="field">
+          <span>¿Tiene transporte propio para recoger la ropa?</span>
+          <select v-model="form.hasOwnTransport" required>
+            <option value="no">No</option>
+            <option value="si">Sí</option>
+          </select>
+        </label>
       </fieldset>
 
       <fieldset>
@@ -326,5 +374,16 @@ legend {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
   gap: 0.35rem 0.8rem;
+}
+
+.people-grid {
+  display: grid;
+  gap: 0.8rem;
+  grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+}
+
+.total {
+  font-weight: 600;
+  margin: 0;
 }
 </style>

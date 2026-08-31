@@ -38,6 +38,7 @@ watch(
         <RouterLink to="/nosotros">Quiénes somos</RouterLink>
         <RouterLink to="/necesidades">Necesidades</RouterLink>
         <RouterLink to="/solicitar-ayuda">Pedir ayuda</RouterLink>
+        <RouterLink to="/ayudar">Hacer parte</RouterLink>
         <RouterLink to="/donar" class="btn btn-primary donate">Donar</RouterLink>
         <RouterLink to="/login" class="login">Entrar</RouterLink>
       </nav>
