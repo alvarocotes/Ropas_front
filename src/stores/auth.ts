@@ -16,6 +16,10 @@ export const useAuthStore = defineStore('auth', () => {
   const canHandleInventory = computed(
     () => user.value?.role === 'admin' || user.value?.role === 'volunteer',
   )
+  /** Registro de voluntarios de transporte: solo admin y recepción. */
+  const canManageTransport = computed(
+    () => user.value?.role === 'admin' || user.value?.role === 'reception',
+  )
 
   function persist(nextToken: string, nextUser: User) {
     token.value = nextToken
@@ -75,6 +79,7 @@ export const useAuthStore = defineStore('auth', () => {
     isAdmin,
     isReception,
     canHandleInventory,
+    canManageTransport,
     login,
     fetchMe,
     updateProfile,

@@ -1,17 +1,28 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import api, { apiErrorMessage } from '@/api/client'
 import StatusBadge from '@/components/StatusBadge.vue'
-import type { TimeVolunteer, TimeVolunteerStatus } from '@/types'
+import type { AvailabilitySlot, TimeVolunteer, TimeVolunteerHelpType, TimeVolunteerStatus, VehicleKind } from '@/types'
 import {
   formatAvailability,
+  helpTypeLabel,
   isoWeekday,
   timeVolunteerStatusLabel,
   timeVolunteerStatusTone,
+  vehicleKindLabel,
+  WEEKDAYS,
   whatsappHref,
 } from '@/types'
 
-type Tab = 'nuevos' | 'hoy' | 'todos'
+type Tab = 'nuevos' | 'hoy' | 'sede' | 'transporte' | 'todos'
+
+type DayDraft = {
+  weekday: number
+  label: string
+  enabled: boolean
+  startTime: string
+  endTime: string
+}
 
 const people = ref<TimeVolunteer[]>([])
 const error = ref('')
@@ -21,9 +32,32 @@ const selected = ref<TimeVolunteer | null>(null)
 const nextStatus = ref<TimeVolunteerStatus>('nuevo')
 const staffNotes = ref('')
 const saving = ref(false)
+const showCreate = ref(false)
 const todayIso = isoWeekday()
 
 const statuses: TimeVolunteerStatus[] = ['nuevo', 'contactado', 'confirmado', 'no_disponible']
+
+const createForm = reactive({
+  helpType: 'transporte' as TimeVolunteerHelpType,
+  fullName: '',
+  phone: '',
+  email: '',
+  vehicleType: '' as VehicleKind | '',
+  vehicleInfo: '',
+  notes: '',
+})
+
+function emptyWeek(): DayDraft[] {
+  return WEEKDAYS.map((day) => ({
+    weekday: day.value,
+    label: day.label,
+    enabled: false,
+    startTime: '08:00',
+    endTime: '12:00',
+  }))
+}
+
+const createDays = ref<DayDraft[]>(emptyWeek())
 
 const visible = computed(() => {
   if (tab.value === 'nuevos') {
@@ -36,8 +70,19 @@ const visible = computed(() => {
         item.availability.some((slot) => slot.weekday === todayIso),
     )
   }
+  if (tab.value === 'sede' || tab.value === 'transporte') {
+    return people.value.filter((item) => (item.helpType ?? 'transporte') === tab.value)
+  }
   return people.value
 })
+
+function toHm(value: string) {
+  const match = value.trim().match(/^(\d{1,2}):(\d{2})/)
+  const hours = match?.[1]
+  const minutes = match?.[2]
+  if (!hours || !minutes) return '08:00'
+  return `${hours.padStart(2, '0')}:${minutes}`
+}
 
 async function load() {
   try {
@@ -56,12 +101,88 @@ function open(person: TimeVolunteer) {
   selected.value = person
   nextStatus.value = person.status
   staffNotes.value = person.staffNotes ?? ''
+  showCreate.value = false
   error.value = ''
   flash.value = ''
 }
 
 function todaySlot(person: TimeVolunteer) {
   return person.availability.find((slot) => slot.weekday === todayIso)
+}
+
+function vehicleLabel(person: TimeVolunteer) {
+  if ((person.helpType ?? 'transporte') !== 'transporte') return '—'
+  if (person.vehicleType) {
+    const kind = vehicleKindLabel[person.vehicleType]
+    return person.vehicleInfo?.trim() ? `${kind} (${person.vehicleInfo})` : kind
+  }
+  if (!person.hasVehicle) return 'Sin vehículo'
+  return person.vehicleInfo?.trim() ? person.vehicleInfo : 'Con vehículo'
+}
+
+function cancelCreate() {
+  showCreate.value = false
+  createForm.helpType = 'transporte'
+  createForm.fullName = ''
+  createForm.phone = ''
+  createForm.email = ''
+  createForm.vehicleType = ''
+  createForm.vehicleInfo = ''
+  createForm.notes = ''
+  createDays.value = emptyWeek()
+}
+
+async function createPerson() {
+  error.value = ''
+  if (createForm.fullName.trim().length < 2) {
+    error.value = 'Escribe el nombre.'
+    return
+  }
+  if (createForm.phone.trim().length < 7) {
+    error.value = 'Escribe un celular de contacto.'
+    return
+  }
+  const slots: AvailabilitySlot[] = createDays.value
+    .filter((day) => day.enabled)
+    .map((day) => ({
+      weekday: day.weekday,
+      startTime: toHm(day.startTime),
+      endTime: toHm(day.endTime),
+    }))
+  if (createForm.helpType === 'transporte' && !createForm.vehicleType) {
+    error.value = 'Indica el tipo de vehículo.'
+    return
+  }
+  if (slots.length === 0) {
+    error.value = 'Marca al menos un día y un horario.'
+    return
+  }
+  for (const slot of slots) {
+    if (slot.startTime >= slot.endTime) {
+      error.value = 'En cada día marcado, la hora de salida debe ser posterior a la de entrada.'
+      return
+    }
+  }
+  saving.value = true
+  try {
+    await api.post('/time-volunteers', {
+      helpType: createForm.helpType,
+      fullName: createForm.fullName.trim(),
+      phone: createForm.phone.trim(),
+      email: createForm.email.trim() || undefined,
+      vehicleType: createForm.helpType === 'transporte' ? createForm.vehicleType : undefined,
+      vehicleInfo: createForm.vehicleInfo.trim() || undefined,
+      notes: createForm.notes.trim() || undefined,
+      slots,
+    })
+    flash.value = 'Persona agregada al registro.'
+    cancelCreate()
+    await load()
+  } catch (err) {
+    error.value = apiErrorMessage(err)
+  } finally {
+    saving.value = false
+  }
 }
 
 async function save() {
@@ -88,19 +209,100 @@ async function save() {
   <section>
     <div class="page-head">
       <div>
-        <h1>Voluntarios de tiempo</h1>
+        <h1>Registro de voluntarios</h1>
         <p class="lead">
-          Personas que se registraron en la web para ayudar. Contáctalas y cuadra el día y la hora.
+          Personas que se inscribieron para ayudar en la sede o con transporte. Contacto y horario
+          para coordinar. Solo administración y recepción.
         </p>
+      </div>
+      <div class="page-actions">
+        <button
+          v-if="!showCreate"
+          class="btn btn-primary"
+          type="button"
+          @click="showCreate = true; selected = null"
+        >
+          Agregar al registro
+        </button>
       </div>
     </div>
 
     <p v-if="error" class="flash flash-error">{{ error }}</p>
     <p v-if="flash" class="flash flash-ok">{{ flash }}</p>
 
+    <form v-if="showCreate" class="card form" @submit.prevent="createPerson">
+      <h2>Agregar persona</h2>
+      <label class="field">
+        <span>Cómo ayuda</span>
+        <select v-model="createForm.helpType">
+          <option value="sede">Voluntario en la sede</option>
+          <option value="transporte">Transporte</option>
+        </select>
+      </label>
+      <label class="field">
+        <span>Nombre</span>
+        <input v-model="createForm.fullName" required minlength="2" />
+      </label>
+      <label class="field">
+        <span>Celular / WhatsApp</span>
+        <input v-model="createForm.phone" required minlength="7" type="tel" />
+      </label>
+      <label class="field">
+        <span>Correo (opcional)</span>
+        <input v-model="createForm.email" type="email" />
+      </label>
+      <label v-if="createForm.helpType === 'transporte'" class="field">
+        <span>Tipo de vehículo</span>
+        <select v-model="createForm.vehicleType" required>
+          <option value="" disabled>Selecciona</option>
+          <option value="moto">Moto</option>
+          <option value="carro">Carro</option>
+          <option value="camioneta">Camioneta</option>
+          <option value="otro">Otro</option>
+        </select>
+      </label>
+      <label v-if="createForm.helpType === 'transporte'" class="field">
+        <span>Detalle del vehículo (opcional)</span>
+        <input v-model="createForm.vehicleInfo" placeholder="Ej. moto 125…" />
+      </label>
+      <label class="field">
+        <span>Nota (opcional)</span>
+        <textarea v-model="createForm.notes" placeholder="Zona, disponibilidad…" />
+      </label>
+      <p class="muted">Horario (opcional): marca los días si ya los sabes.</p>
+      <div class="week">
+        <article v-for="day in createDays" :key="day.weekday" class="day" :class="{ on: day.enabled }">
+          <label class="check">
+            <input v-model="day.enabled" type="checkbox" />
+            <span>{{ day.label }}</span>
+          </label>
+          <label class="field">
+            <span>Desde</span>
+            <input v-model="day.startTime" type="time" :disabled="!day.enabled" />
+          </label>
+          <label class="field">
+            <span>Hasta</span>
+            <input v-model="day.endTime" type="time" :disabled="!day.enabled" />
+          </label>
+        </article>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-ghost" type="button" @click="cancelCreate">Cancelar</button>
+        <button class="btn btn-primary" type="submit" :disabled="saving">
+          {{ saving ? 'Guardando...' : 'Guardar en el registro' }}
+        </button>
+      </div>
+    </form>
+
     <div class="tabs">
       <button type="button" class="tab" :class="{ active: tab === 'nuevos' }" @click="tab = 'nuevos'">
         Nuevos
+      </button>
+      <button type="button" class="tab" :class="{ active: tab === 'sede' }" @click="tab = 'sede'">
+        En la sede
+      </button>
+      <button type="button" class="tab" :class="{ active: tab === 'transporte' }" @click="tab = 'transporte'">
+        Transporte
       </button>
       <button type="button" class="tab" :class="{ active: tab === 'hoy' }" @click="tab = 'hoy'">
         Pueden hoy
@@ -115,7 +317,9 @@ async function save() {
         <thead>
           <tr>
             <th>Nombre</th>
+            <th>Cómo ayuda</th>
             <th>Contacto</th>
+            <th>Vehículo</th>
             <th>Horario</th>
             <th>Estado</th>
             <th></th>
@@ -127,6 +331,7 @@ async function save() {
               <strong>{{ person.fullName }}</strong>
               <div v-if="person.notes" class="muted">{{ person.notes }}</div>
             </td>
+            <td data-label="Cómo ayuda">{{ helpTypeLabel[person.helpType ?? 'transporte'] }}</td>
             <td data-label="Contacto">
               <a
                 v-if="whatsappHref(person.phone)"
@@ -139,6 +344,7 @@ async function save() {
               <span v-else>{{ person.phone }}</span>
               <div v-if="person.email" class="muted">{{ person.email }}</div>
             </td>
+            <td data-label="Vehículo">{{ vehicleLabel(person) }}</td>
             <td data-label="Horario">
               <template v-if="tab === 'hoy' && todaySlot(person)">
                 {{ todaySlot(person)?.startTime }} – {{ todaySlot(person)?.endTime }}
@@ -156,7 +362,7 @@ async function save() {
             </td>
           </tr>
           <tr v-if="!visible.length">
-            <td colspan="5" class="muted">No hay registros en esta vista.</td>
+            <td colspan="7" class="muted">No hay registros en esta vista.</td>
           </tr>
         </tbody>
       </table>
@@ -182,9 +388,11 @@ async function save() {
             <span v-else>{{ selected.phone }}</span>
           </dd>
         </div>
+        <div><dt>Cómo ayuda</dt><dd>{{ helpTypeLabel[selected.helpType ?? 'transporte'] }}</dd></div>
         <div v-if="selected.email"><dt>Correo</dt><dd>{{ selected.email }}</dd></div>
+        <div><dt>Vehículo</dt><dd>{{ vehicleLabel(selected) }}</dd></div>
         <div class="wide"><dt>Horario</dt><dd>{{ formatAvailability(selected.availability) }}</dd></div>
-        <div v-if="selected.notes" class="wide"><dt>Quiere ayudar en</dt><dd>{{ selected.notes }}</dd></div>
+        <div v-if="selected.notes" class="wide"><dt>Nota</dt><dd>{{ selected.notes }}</dd></div>
       </dl>
 
       <form class="form" @submit.prevent="save">
@@ -275,5 +483,37 @@ h1 {
 .modal {
   margin-top: 1rem;
   padding: 1.1rem;
+}
+.check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.check input {
+  width: 1.15rem;
+  height: 1.15rem;
+  accent-color: var(--terracotta);
+}
+.week {
+  display: grid;
+  gap: 0.55rem;
+}
+.day {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.day.on {
+  border-color: rgba(46, 107, 99, 0.45);
+}
+@media (min-width: 720px) {
+  .day {
+    grid-template-columns: minmax(8rem, 1.1fr) minmax(0, 1fr) minmax(0, 1fr);
+    align-items: end;
+  }
 }
 </style>

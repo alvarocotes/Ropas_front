@@ -32,8 +32,8 @@ function logout() {
         <RouterLink v-if="auth.canHandleInventory" to="/necesidades-admin">Necesidades</RouterLink>
         <RouterLink v-if="auth.isAdmin" to="/contenido">Contenido</RouterLink>
         <RouterLink v-if="auth.isAdmin" to="/usuarios">Usuarios</RouterLink>
-        <RouterLink v-if="auth.isAdmin || auth.isReception" to="/voluntarios-tiempo">
-          Voluntarios de tiempo
+        <RouterLink v-if="auth.canManageTransport" to="/voluntarios-tiempo">
+          Registro de voluntarios
         </RouterLink>
         <RouterLink to="/perfil">Mi perfil</RouterLink>
       </nav>

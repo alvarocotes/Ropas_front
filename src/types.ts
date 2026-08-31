@@ -92,6 +92,21 @@ export const timeVolunteerStatusTone: Record<
   no_disponible: 'cancelado',
 }
 
+export type TimeVolunteerHelpType = 'sede' | 'transporte'
+export type VehicleKind = 'moto' | 'carro' | 'camioneta' | 'otro'
+
+export const helpTypeLabel: Record<TimeVolunteerHelpType, string> = {
+  sede: 'En la sede',
+  transporte: 'Transporte',
+}
+
+export const vehicleKindLabel: Record<VehicleKind, string> = {
+  moto: 'Moto',
+  carro: 'Carro',
+  camioneta: 'Camioneta',
+  otro: 'Otro',
+}
+
 export interface TimeVolunteer {
   id: number
   fullName: string
@@ -99,6 +114,10 @@ export interface TimeVolunteer {
   email: string | null
   notes: string | null
   staffNotes: string | null
+  helpType?: TimeVolunteerHelpType
+  hasVehicle: boolean
+  vehicleType: VehicleKind | null
+  vehicleInfo: string | null
   status: TimeVolunteerStatus
   createdAt: string
   availability: AvailabilitySlot[]

@@ -34,7 +34,7 @@ onMounted(async () => {
       </p>
       <div class="actions">
         <RouterLink to="/donar" class="btn btn-primary">Registrar una donación</RouterLink>
-        <RouterLink to="/ayudar" class="btn btn-ghost">Ayudar con tiempo</RouterLink>
+        <RouterLink to="/ayudar" class="btn btn-ghost">Hacer parte</RouterLink>
         <RouterLink to="/solicitar-ayuda" class="btn btn-ghost">Solicitar ayuda</RouterLink>
         <RouterLink to="/nosotros" class="btn btn-ghost">Quiénes somos</RouterLink>
       </div>

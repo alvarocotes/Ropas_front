@@ -18,7 +18,10 @@ const timeVolunteers = ref<TimeVolunteer[]>([])
 const loading = ref(true)
 
 const showInventory = computed(() => auth.canHandleInventory)
-const canCoordinateTime = computed(() => auth.isAdmin || auth.isReception)
+const showStaffSchedule = computed(
+  () => auth.isAdmin || auth.user?.role === 'volunteer',
+)
+const canManageTransport = computed(() => auth.canManageTransport)
 const todayIso = isoWeekday()
 const todayVolunteers = computed(() =>
   schedule.value
@@ -47,8 +50,8 @@ onMounted(async () => {
       api.get<HelpRequest[]>('/help-requests'),
       showInventory.value ? api.get<Product[]>('/inventory/alerts') : null,
       showInventory.value ? api.get<Donation[]>('/donations') : null,
-      api.get<VolunteerSchedule[]>('/stats/volunteer-schedule'),
-      canCoordinateTime.value ? api.get<TimeVolunteer[]>('/time-volunteers') : null,
+      showStaffSchedule.value ? api.get<VolunteerSchedule[]>('/stats/volunteer-schedule') : null,
+      canManageTransport.value ? api.get<TimeVolunteer[]>('/time-volunteers') : null,
     ])
     requests.value = requestRes.data.filter(
       (item) => item.status === 'recibido' || item.status === 'en_proceso',
@@ -58,7 +61,7 @@ onMounted(async () => {
     donations.value = (donationRes?.data ?? []).filter(
       (item) => item.status === 'recibido' || item.status === 'en_proceso',
     )
-    schedule.value = scheduleRes.data
+    schedule.value = scheduleRes?.data ?? []
     timeVolunteers.value = timeRes?.data ?? []
   } finally {
     loading.value = false
@@ -73,11 +76,10 @@ onMounted(async () => {
 
     <div v-if="loading">Cargando...</div>
     <div v-else class="grid">
-      <article class="card block">
+      <article v-if="showStaffSchedule" class="card block">
         <div class="head">
           <h2>Voluntarios hoy</h2>
           <RouterLink v-if="auth.isAdmin" to="/usuarios">Ver horarios</RouterLink>
-          <RouterLink v-else-if="auth.isReception" to="/voluntarios-tiempo">Ver registro</RouterLink>
           <RouterLink v-else-if="auth.user?.role === 'volunteer'" to="/horario">Mi horario</RouterLink>
         </div>
         <p v-if="todayVolunteers.length === 0">Nadie registró horario para hoy.</p>
@@ -92,16 +94,16 @@ onMounted(async () => {
         </ul>
       </article>
 
-      <article v-if="canCoordinateTime" class="card block">
+      <article v-if="canManageTransport" class="card block">
         <div class="head">
-          <h2>Quieren ayudar con tiempo</h2>
-          <RouterLink to="/voluntarios-tiempo">Coordinar</RouterLink>
+          <h2>Registro de voluntarios</h2>
+          <RouterLink to="/voluntarios-tiempo">Ver registro</RouterLink>
         </div>
         <p v-if="newTimeVolunteers.length">
-          {{ newTimeVolunteers.length }} registro{{ newTimeVolunteers.length === 1 ? '' : 's' }}
-          nuevo{{ newTimeVolunteers.length === 1 ? '' : 's' }} por contactar.
+          {{ newTimeVolunteers.length }} persona{{ newTimeVolunteers.length === 1 ? '' : 's' }}
+          nueva{{ newTimeVolunteers.length === 1 ? '' : 's' }} por contactar.
         </p>
-        <p v-else-if="todayTimeVolunteers.length === 0">Nadie del público marcó horario para hoy.</p>
+        <p v-else-if="todayTimeVolunteers.length === 0">Nadie del registro marcó horario para hoy.</p>
         <ul v-if="todayTimeVolunteers.length">
           <li v-for="person in todayTimeVolunteers" :key="person.id">
             <span>
