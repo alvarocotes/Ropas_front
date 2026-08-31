@@ -62,7 +62,8 @@ onMounted(() => {
 })
 
 useLiveReload(() => load({ quiet: true }), {
-  paused: () => busyId.value !== null || savingEdit.value,
+  paused: () =>
+    busyId.value !== null || savingEdit.value || showCreate.value || editingId.value !== null,
 })
 
 async function createProduct() {
@@ -124,6 +125,7 @@ async function togglePublish(product: Product) {
 }
 
 function startEdit(product: Product) {
+  showCreate.value = false
   editingId.value = product.id
   editForm.name = product.name
   editForm.unit = product.unit
@@ -135,9 +137,16 @@ function startEdit(product: Product) {
 
 function cancelEdit() {
   editingId.value = null
+  error.value = ''
 }
 
-async function saveEdit(product: Product) {
+const editingProduct = computed(
+  () => products.value.find((product) => product.id === editingId.value) ?? null,
+)
+
+async function saveEdit() {
+  const product = editingProduct.value
+  if (!product) return
   const name = editForm.name.trim()
   if (name.length < 2) {
     error.value = 'El nombre del producto debe tener al menos 2 caracteres.'
@@ -193,7 +202,7 @@ function isLow(product: Product) {
       </div>
       <div class="page-actions">
         <button
-          v-if="!showCreate"
+          v-if="!showCreate && !editingId"
           class="btn btn-primary"
           type="button"
           @click="showCreate = true"
@@ -202,7 +211,7 @@ function isLow(product: Product) {
         </button>
       </div>
     </div>
-    <p v-if="error && !showCreate" class="flash flash-error">{{ error }}</p>
+    <p v-if="error && !showCreate && !editingId" class="flash flash-error">{{ error }}</p>
 
     <OverlayCard v-if="showCreate" @close="cancelCreate">
     <form class="form" @submit.prevent="createProduct">
@@ -223,6 +232,39 @@ function isLow(product: Product) {
       <div class="form-actions">
         <button class="btn btn-ghost" type="button" @click="cancelCreate">Cancelar</button>
         <button class="btn btn-primary" type="submit">Crear</button>
+      </div>
+    </form>
+    </OverlayCard>
+
+    <OverlayCard v-if="editingProduct" @close="cancelEdit">
+    <form class="form" @submit.prevent="saveEdit">
+      <h2>Editar {{ editingProduct.name }}</h2>
+      <p v-if="error" class="flash flash-error">{{ error }}</p>
+      <label class="field">
+        <span>Nombre</span>
+        <input v-model="editForm.name" required minlength="2" />
+      </label>
+      <label class="field">
+        <span>Unidad</span>
+        <input v-model="editForm.unit" required />
+      </label>
+      <label class="field">
+        <span>Mínimo para alerta</span>
+        <input v-model.number="editForm.minQuantity" type="number" min="0" />
+      </label>
+      <label class="check">
+        <input v-model="editForm.publishWhenLow" type="checkbox" />
+        <span>Publicar en necesidades cuando baje del mínimo</span>
+      </label>
+      <label v-if="editForm.publishWhenLow" class="field">
+        <span>Mensaje para donantes</span>
+        <input v-model="editForm.publicNote" maxlength="300" />
+      </label>
+      <div class="form-actions">
+        <button class="btn btn-ghost" type="button" @click="cancelEdit">Cancelar</button>
+        <button class="btn btn-primary" type="submit" :disabled="savingEdit">
+          {{ savingEdit ? 'Guardando...' : 'Guardar' }}
+        </button>
       </div>
     </form>
     </OverlayCard>
@@ -272,35 +314,6 @@ function isLow(product: Product) {
           <StatusBadge v-else tone="listo" label="OK" />
         </header>
 
-        <form v-if="auth.isAdmin && editingId === product.id" class="edit" @submit.prevent="saveEdit(product)">
-          <label class="field">
-            <span>Nombre</span>
-            <input v-model="editForm.name" required minlength="2" />
-          </label>
-          <label class="field">
-            <span>Unidad</span>
-            <input v-model="editForm.unit" required />
-          </label>
-          <label class="field">
-            <span>Mínimo para alerta</span>
-            <input v-model.number="editForm.minQuantity" type="number" min="0" />
-          </label>
-          <label class="check">
-            <input v-model="editForm.publishWhenLow" type="checkbox" />
-            <span>Publicar en necesidades cuando baje del mínimo</span>
-          </label>
-          <label v-if="editForm.publishWhenLow" class="field">
-            <span>Mensaje para donantes</span>
-            <input v-model="editForm.publicNote" maxlength="300" />
-          </label>
-          <div class="form-actions">
-            <button class="btn btn-ghost" type="button" @click="cancelEdit">Cancelar</button>
-            <button class="btn btn-primary" type="submit" :disabled="savingEdit">
-              {{ savingEdit ? 'Guardando...' : 'Guardar' }}
-            </button>
-          </div>
-        </form>
-
         <div class="figure">
           <strong>{{ product.quantity }}</strong>
           <span>{{ product.unit }}</span>
@@ -335,7 +348,6 @@ function isLow(product: Product) {
           </button>
         </div>
 
-        <template v-if="editingId !== product.id">
         <label class="min-row">
           <span>Mínimo para alerta</span>
           <input
@@ -369,7 +381,6 @@ function isLow(product: Product) {
           <button class="btn btn-ghost" type="button" @click="startEdit(product)">Editar</button>
           <button class="btn btn-ghost" type="button" @click="removeProduct(product)">Eliminar</button>
         </div>
-        </template>
       </article>
     </div>
   </section>
@@ -582,11 +593,6 @@ h1 { font-size: clamp(1.6rem, 7vw, 2.2rem); }
   height: 1.15rem;
   flex: 0 0 auto;
   accent-color: var(--terracotta);
-}
-
-.edit {
-  display: grid;
-  gap: 0.65rem;
 }
 
 .catalog-actions {
