@@ -19,9 +19,14 @@ const productForm = reactive({
   publishWhenLow: false,
   publicNote: '',
 })
-/** Cantidad a sumar o restar desde la tarjeta de cada producto. */
-const amounts = reactive<Record<number, number>>({})
 const busyId = ref<number | null>(null)
+const stockMove = ref<{
+  productId: number
+  name: string
+  unit: string
+  type: 'entrada' | 'salida'
+  quantity: number
+} | null>(null)
 const search = ref('')
 const onlyLow = ref(false)
 const editingId = ref<number | null>(null)
@@ -47,11 +52,6 @@ async function load(opts?: { quiet?: boolean }) {
   try {
     const { data } = await api.get<Product[]>('/inventory/products')
     products.value = data
-    for (const product of products.value) {
-      if (!amounts[product.id]) {
-        amounts[product.id] = 1
-      }
-    }
   } catch (err) {
     if (!opts?.quiet) error.value = apiErrorMessage(err)
   }
@@ -63,7 +63,11 @@ onMounted(() => {
 
 useLiveReload(() => load({ quiet: true }), {
   paused: () =>
-    busyId.value !== null || savingEdit.value || showCreate.value || editingId.value !== null,
+    busyId.value !== null ||
+    savingEdit.value ||
+    showCreate.value ||
+    editingId.value !== null ||
+    Boolean(stockMove.value),
 })
 
 async function createProduct() {
@@ -88,16 +92,46 @@ function cancelCreate() {
   error.value = ''
 }
 
-async function changeStock(product: Product, type: 'entrada' | 'salida') {
-  const quantity = Number(amounts[product.id]) || 0
-  if (quantity < 1) {
+function openStock(product: Product, type: 'entrada' | 'salida') {
+  if (busyId.value !== null) return
+  error.value = ''
+  stockMove.value = {
+    productId: product.id,
+    name: product.name,
+    unit: product.unit,
+    type,
+    quantity: 1,
+  }
+}
+
+function cancelStock() {
+  if (busyId.value !== null) return
+  stockMove.value = null
+  error.value = ''
+}
+
+const stockProduct = computed(() => {
+  if (!stockMove.value) return null
+  return products.value.find((item) => item.id === stockMove.value?.productId) ?? null
+})
+
+async function confirmStock() {
+  const move = stockMove.value
+  if (!move || busyId.value !== null) return
+  const quantity = Number(move.quantity)
+  if (!Number.isFinite(quantity) || quantity < 1) {
     error.value = 'Escribe una cantidad mayor que cero.'
     return
   }
   error.value = ''
-  busyId.value = product.id
+  busyId.value = move.productId
   try {
-    await api.post('/inventory/movements', { productId: product.id, type, quantity })
+    await api.post('/inventory/movements', {
+      productId: move.productId,
+      type: move.type,
+      quantity,
+    })
+    stockMove.value = null
     await load()
   } catch (err) {
     error.value = apiErrorMessage(err)
@@ -211,7 +245,7 @@ function isLow(product: Product) {
         </button>
       </div>
     </div>
-    <p v-if="error && !showCreate && !editingId" class="flash flash-error">{{ error }}</p>
+    <p v-if="error && !showCreate && !editingId && !stockMove" class="flash flash-error">{{ error }}</p>
 
     <OverlayCard v-if="showCreate" @close="cancelCreate">
     <form class="form" @submit.prevent="createProduct">
@@ -269,11 +303,45 @@ function isLow(product: Product) {
     </form>
     </OverlayCard>
 
+    <OverlayCard v-if="stockMove" @close="cancelStock">
+    <form class="form" @submit.prevent="confirmStock">
+      <h2>
+        {{ stockMove.type === 'entrada' ? 'Sumar al stock' : 'Restar del stock' }}
+      </h2>
+      <p v-if="error" class="flash flash-error">{{ error }}</p>
+      <p class="hint">
+        {{ stockMove.name }}
+        <template v-if="stockProduct">
+          — hay {{ stockProduct.quantity }} {{ stockProduct.unit }} ahora.
+        </template>
+      </p>
+      <label class="field">
+        <span>Cantidad a {{ stockMove.type === 'entrada' ? 'sumar' : 'restar' }}</span>
+        <input
+          v-model.number="stockMove.quantity"
+          type="number"
+          min="1"
+          step="1"
+          required
+          :disabled="busyId !== null"
+        />
+      </label>
+      <div class="form-actions">
+        <button class="btn btn-ghost" type="button" :disabled="busyId !== null" @click="cancelStock">
+          Cancelar
+        </button>
+        <button class="btn btn-primary" type="submit" :disabled="busyId !== null">
+          {{ busyId !== null ? 'Guardando...' : 'Confirmar' }}
+        </button>
+      </div>
+    </form>
+    </OverlayCard>
+
     <div class="block-head">
       <h2>Existencias</h2>
       <p class="hint">
-        Escribe la cantidad y pulsa <strong>+</strong> para sumarla al stock, o <strong>−</strong>
-        para descontarla. El historial de esos cambios está en Movimientos.
+        Pulsa <strong>+</strong> o <strong>−</strong>, escribe la cantidad y confirma. Mientras se
+        guarda no se puede volver a pulsar. El historial está en Movimientos.
       </p>
       <div class="toolbar">
         <div class="search">
@@ -323,26 +391,18 @@ function isLow(product: Product) {
           <button
             class="step"
             type="button"
-            :disabled="busyId === product.id"
+            :disabled="busyId !== null || Boolean(stockMove)"
             aria-label="Restar del stock"
-            @click="changeStock(product, 'salida')"
+            @click="openStock(product, 'salida')"
           >
             −
           </button>
-          <input
-            v-model.number="amounts[product.id]"
-            class="amount"
-            type="number"
-            min="1"
-            inputmode="numeric"
-            aria-label="Cantidad"
-          />
           <button
             class="step add"
             type="button"
-            :disabled="busyId === product.id"
+            :disabled="busyId !== null || Boolean(stockMove)"
             aria-label="Sumar al stock"
-            @click="changeStock(product, 'entrada')"
+            @click="openStock(product, 'entrada')"
           >
             +
           </button>
@@ -502,15 +562,14 @@ h1 { font-size: clamp(1.6rem, 7vw, 2.2rem); }
 
 .stock .counter {
   display: grid;
-  grid-template-columns: 48px minmax(0, 1fr) 48px;
+  grid-template-columns: 1fr 1fr;
   align-items: stretch;
   gap: 0.4rem;
   max-width: 100%;
 }
 
 .step {
-  flex: 0 0 48px;
-  width: 48px;
+  width: 100%;
   min-height: 48px;
   border: 1px solid var(--line);
   border-radius: 12px;
@@ -531,17 +590,6 @@ h1 { font-size: clamp(1.6rem, 7vw, 2.2rem); }
   border-color: var(--terracotta);
   color: white;
   font-weight: 700;
-}
-
-.stock .amount {
-  width: 100%;
-  min-width: 0;
-  min-height: 48px;
-  text-align: center;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: 0.3rem 0.4rem;
-  font-size: 16px;
 }
 
 /* Las flechas nativas roban ancho y descuadran la fila. */
