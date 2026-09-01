@@ -18,8 +18,10 @@ const schedule = ref<StaffAttendance[]>([])
 const timeVolunteers = ref<TimeVolunteer[]>([])
 const loading = ref(true)
 
-const showInventory = computed(() => auth.canHandleInventory)
-const canManageTransport = computed(() => auth.canManageTransport)
+const showInventory = computed(() => auth.can('inventory'))
+const showDonations = computed(() => auth.can('donations'))
+const showRequests = computed(() => auth.can('requests'))
+const canManageTransport = computed(() => auth.can('time_volunteers'))
 const today = localIsoDate()
 const todayIso = isoWeekday()
 const newTimeVolunteers = computed(() =>
@@ -44,16 +46,16 @@ async function load(opts?: { quiet?: boolean }) {
   try {
     // Todo en paralelo: en producción cada ida y vuelta al servidor cuesta.
     const [requestRes, alertRes, donationRes, scheduleRes, timeRes] = await Promise.all([
-      api.get<HelpRequest[]>('/help-requests'),
+      showRequests.value ? api.get<HelpRequest[]>('/help-requests') : null,
       showInventory.value ? api.get<Product[]>('/inventory/alerts') : null,
-      showInventory.value ? api.get<Donation[]>('/donations') : null,
+      showDonations.value ? api.get<Donation[]>('/donations') : null,
       api.get<StaffAttendance[]>('/stats/staff-attendance', { params: { date: today } }),
       canManageTransport.value ? api.get<TimeVolunteer[]>('/time-volunteers') : null,
     ])
-    requests.value = requestRes.data.filter(
+    requests.value = (requestRes?.data ?? []).filter(
       (item) => item.status === 'recibido' || item.status === 'en_proceso',
     )
-    readyRequests.value = requestRes.data.filter((item) => item.status === 'listo')
+    readyRequests.value = (requestRes?.data ?? []).filter((item) => item.status === 'listo')
     alerts.value = alertRes?.data ?? []
     donations.value = (donationRes?.data ?? []).filter(
       (item) => item.status === 'recibido' || item.status === 'en_proceso',
@@ -129,7 +131,7 @@ async function load(opts?: { quiet?: boolean }) {
         </ul>
       </article>
 
-      <article class="card block">
+      <article v-if="showRequests" class="card block">
         <div class="head">
           <h2>Solicitudes en alistamiento</h2>
           <RouterLink to="/solicitudes">Gestionar</RouterLink>
@@ -146,7 +148,7 @@ async function load(opts?: { quiet?: boolean }) {
         </ul>
       </article>
 
-      <article class="card block">
+      <article v-if="showRequests" class="card block">
         <div class="head">
           <h2>Listas para transporte</h2>
           <RouterLink to="/solicitudes">Ver</RouterLink>
@@ -163,7 +165,7 @@ async function load(opts?: { quiet?: boolean }) {
         </ul>
       </article>
 
-      <article v-if="showInventory" class="card block">
+      <article v-if="showDonations" class="card block">
         <div class="head">
           <h2>Donaciones por ingresar</h2>
           <RouterLink to="/donaciones">Gestionar</RouterLink>

@@ -5,8 +5,8 @@ import OverlayCard from '@/components/OverlayCard.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
 import { useLiveReload } from '@/composables/useLiveReload'
 import { useAuthStore } from '@/stores/auth'
-import type { User, UserRole } from '@/types'
-import { formatAttendances, roleLabel } from '@/types'
+import type { AppModule, User, UserRole } from '@/types'
+import { defaultModulesForRole, formatAttendances, formatModules, MODULE_OPTIONS, roleLabel } from '@/types'
 
 const auth = useAuthStore()
 const users = ref<User[]>([])
@@ -23,6 +23,7 @@ const emptyForm = () => ({
   phone: '',
   role: 'volunteer' as UserRole,
   isActive: true,
+  modules: defaultModulesForRole('volunteer') as AppModule[],
 })
 
 const form = reactive(emptyForm())
@@ -73,8 +74,23 @@ function openEdit(user: User) {
   form.role = user.role
   form.password = ''
   form.isActive = user.isActive
+  form.modules = [...(user.modules ?? defaultModulesForRole(user.role))]
   error.value = ''
   flash.value = ''
+}
+
+function onRoleChange() {
+  form.modules = defaultModulesForRole(form.role)
+}
+
+function hasModule(id: AppModule) {
+  return form.modules.includes(id)
+}
+
+function toggleModule(id: AppModule) {
+  const index = form.modules.indexOf(id)
+  if (index >= 0) form.modules.splice(index, 1)
+  else form.modules.push(id)
 }
 
 const isEditingSelf = () => editing.value?.id === auth.user?.id
@@ -107,7 +123,9 @@ async function saveUser() {
         fullName,
         email,
         phone,
-        ...(isEditingSelf() ? {} : { role: form.role, isActive: form.isActive }),
+        ...(isEditingSelf()
+          ? {}
+          : { role: form.role, isActive: form.isActive, modules: form.modules }),
         ...(form.password ? { password: form.password } : {}),
       })
       flash.value = 'Usuario actualizado.'
@@ -117,6 +135,7 @@ async function saveUser() {
         email,
         password: form.password,
         role: form.role,
+        modules: form.modules,
         ...(phone ? { phone } : {}),
       })
       flash.value = 'Cuenta creada.'
@@ -152,8 +171,8 @@ async function toggleActive(user: User) {
       <div>
         <h1>Usuarios</h1>
         <p class="lead">
-          Crea cuentas, cambia el rol (voluntario, recepción o administrador) y edita nombre,
-          correo o contraseña.
+          Crea cuentas, asigna módulos (inventario, solicitudes, etc.) y elige el rol
+          para el trabajo en solicitudes.
         </p>
       </div>
       <div class="page-actions">
@@ -170,7 +189,7 @@ async function toggleActive(user: User) {
     <p v-if="error && !showCreate && !editing" class="flash flash-error">{{ error }}</p>
     <p v-if="flash && !showCreate && !editing" class="flash flash-ok">{{ flash }}</p>
 
-    <OverlayCard v-if="showCreate || editing" @close="cancelForm">
+    <OverlayCard v-if="showCreate || editing" wide @close="cancelForm">
     <form class="form" @submit.prevent="saveUser">
       <h2>{{ editing ? `Editar a ${editing.fullName}` : 'Crear cuenta' }}</h2>
       <p v-if="error" class="flash flash-error">{{ error }}</p>
@@ -198,13 +217,26 @@ async function toggleActive(user: User) {
       </label>
       <label class="field">
         <span>Rol</span>
-        <select v-model="form.role" :disabled="isEditingSelf()">
+        <select v-model="form.role" :disabled="isEditingSelf()" @change="onRoleChange">
           <option value="volunteer">Voluntario (alistamiento)</option>
           <option value="reception">Recepción (transporte y entrega)</option>
           <option value="admin">Administrador</option>
         </select>
       </label>
-      <p v-if="isEditingSelf()" class="muted">No puedes cambiar tu propio rol desde aquí.</p>
+      <p v-if="isEditingSelf()" class="muted">No puedes cambiar tu propio rol ni tus módulos desde aquí.</p>
+      <fieldset v-else-if="form.role !== 'admin'" class="modules">
+        <legend>Módulos que puede usar</legend>
+        <p class="muted">Marca a qué secciones entra esta persona. El rol sigue definiendo cómo trabaja en solicitudes (alistar o entregar).</p>
+        <label v-for="item in MODULE_OPTIONS" :key="item.id" class="check">
+          <input
+            type="checkbox"
+            :checked="hasModule(item.id)"
+            @change="toggleModule(item.id)"
+          />
+          <span>{{ item.label }}</span>
+        </label>
+      </fieldset>
+      <p v-else class="muted">El administrador entra a todos los módulos.</p>
       <label v-if="editing && !isEditingSelf()" class="check">
         <input v-model="form.isActive" type="checkbox" />
         <span>Cuenta activa</span>
@@ -225,6 +257,7 @@ async function toggleActive(user: User) {
             <th>Nombre</th>
             <th>Correo</th>
             <th>Rol</th>
+            <th>Módulos</th>
             <th>Horario</th>
             <th>Estado</th>
             <th></th>
@@ -232,12 +265,13 @@ async function toggleActive(user: User) {
         </thead>
         <tbody>
           <tr v-if="users.length === 0">
-            <td colspan="6" class="muted">No hay usuarios para mostrar.</td>
+            <td colspan="7" class="muted">No hay usuarios para mostrar.</td>
           </tr>
           <tr v-for="user in users" :key="user.id">
             <td data-label="Nombre">{{ user.fullName }}</td>
             <td data-label="Correo">{{ user.email }}</td>
             <td data-label="Rol">{{ roleLabel[user.role] }}</td>
+            <td data-label="Módulos">{{ formatModules(user.modules, user.role) }}</td>
             <td data-label="Horario">
               {{ formatAttendances(user.attendances) }}
             </td>
@@ -280,5 +314,16 @@ h1 { font-size: clamp(1.6rem, 7vw, 2.2rem); }
   width: 1.15rem;
   height: 1.15rem;
   accent-color: var(--terracotta);
+}
+.modules {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 0.75rem 0.9rem;
+  display: grid;
+  gap: 0.55rem;
+}
+.modules legend {
+  font-weight: 600;
+  padding: 0 0.35rem;
 }
 </style>

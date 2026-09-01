@@ -1,7 +1,8 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import api from '@/api/client'
-import type { AvailabilitySlot, AttendanceRecord, User } from '@/types'
+import type { AppModule, AvailabilitySlot, AttendanceRecord, User } from '@/types'
+import { defaultModulesForRole } from '@/types'
 
 const TOKEN_KEY = 'abrigar_token'
 const USER_KEY = 'abrigar_user'
@@ -13,13 +14,17 @@ export const useAuthStore = defineStore('auth', () => {
   const isAuthenticated = computed(() => Boolean(token.value))
   const isAdmin = computed(() => user.value?.role === 'admin')
   const isReception = computed(() => user.value?.role === 'reception')
-  const canHandleInventory = computed(
-    () => user.value?.role === 'admin' || user.value?.role === 'volunteer',
-  )
-  /** Registro de voluntarios de transporte: solo admin y recepción. */
-  const canManageTransport = computed(
-    () => user.value?.role === 'admin' || user.value?.role === 'reception',
-  )
+
+  function can(module: AppModule) {
+    const current = user.value
+    if (!current) return false
+    if (current.role === 'admin') return true
+    const list = current.modules ?? defaultModulesForRole(current.role)
+    return list.includes(module)
+  }
+
+  const canHandleInventory = computed(() => can('inventory'))
+  const canManageTransport = computed(() => can('time_volunteers'))
 
   function persist(nextToken: string, nextUser: User) {
     token.value = nextToken
@@ -96,6 +101,7 @@ export const useAuthStore = defineStore('auth', () => {
     isAuthenticated,
     isAdmin,
     isReception,
+    can,
     canHandleInventory,
     canManageTransport,
     login,

@@ -6,6 +6,38 @@ export const roleLabel: Record<UserRole, string> = {
   reception: 'Recepción',
 }
 
+export type AppModule =
+  | 'inventory'
+  | 'donations'
+  | 'requests'
+  | 'needs'
+  | 'content'
+  | 'time_volunteers'
+
+export const MODULE_OPTIONS: { id: AppModule; label: string; short: string }[] = [
+  { id: 'inventory', label: 'Inventario y movimientos', short: 'Inventario' },
+  { id: 'donations', label: 'Donaciones', short: 'Donaciones' },
+  { id: 'requests', label: 'Solicitudes de ayuda', short: 'Solicitudes' },
+  { id: 'needs', label: 'Necesidades públicas', short: 'Necesidades' },
+  { id: 'content', label: 'Contenido (quiénes somos y mapa)', short: 'Contenido' },
+  { id: 'time_volunteers', label: 'Registro de voluntarios', short: 'Voluntarios' },
+]
+
+export function defaultModulesForRole(role: UserRole): AppModule[] {
+  if (role === 'admin') return MODULE_OPTIONS.map((item) => item.id)
+  if (role === 'reception') return ['requests', 'time_volunteers']
+  return ['inventory', 'donations', 'requests', 'needs']
+}
+
+export function formatModules(modules?: AppModule[], role?: UserRole): string {
+  if (role === 'admin') return 'Todos'
+  const ids = modules?.length ? modules : []
+  if (!ids.length) return 'Ninguno'
+  return ids
+    .map((id) => MODULE_OPTIONS.find((item) => item.id === id)?.short ?? id)
+    .join(' · ')
+}
+
 export interface UserRef {
   id: number
   fullName: string
@@ -25,6 +57,7 @@ export interface User {
   phone: string | null
   isActive: boolean
   createdAt: string
+  modules?: AppModule[]
   availability?: AvailabilitySlot[]
   attendances?: AttendanceRecord[]
 }

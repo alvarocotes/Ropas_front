@@ -16,5 +16,12 @@ declare module 'vue-router' {
     requiresAuth?: boolean
     admin?: boolean
     roles?: ('admin' | 'volunteer' | 'reception')[]
+    module?:
+      | 'inventory'
+      | 'donations'
+      | 'requests'
+      | 'needs'
+      | 'content'
+      | 'time_volunteers'
   }
 }

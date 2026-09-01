@@ -108,7 +108,7 @@ function responsible(request: HelpRequest) {
 
 async function load(opts?: { quiet?: boolean }) {
   try {
-    const canSeeInventory = auth.canHandleInventory || auth.isAdmin || auth.isReception
+    const canSeeInventory = auth.can('inventory')
     // En paralelo para no sumar dos idas y vueltas al servidor.
     const [requestRes, productRes] = await Promise.all([
       api.get<HelpRequest[]>('/help-requests'),

@@ -25,14 +25,14 @@ function logout() {
       <nav>
         <RouterLink to="/panel">Panel</RouterLink>
         <RouterLink to="/horario">Mi horario</RouterLink>
-        <RouterLink v-if="auth.canHandleInventory" to="/inventario">Inventario</RouterLink>
-        <RouterLink v-if="auth.canHandleInventory" to="/movimientos">Movimientos</RouterLink>
-        <RouterLink to="/solicitudes">Solicitudes</RouterLink>
-        <RouterLink v-if="auth.canHandleInventory" to="/donaciones">Donaciones</RouterLink>
-        <RouterLink v-if="auth.canHandleInventory" to="/necesidades-admin">Necesidades</RouterLink>
-        <RouterLink v-if="auth.isAdmin" to="/contenido">Contenido</RouterLink>
+        <RouterLink v-if="auth.can('inventory')" to="/inventario">Inventario</RouterLink>
+        <RouterLink v-if="auth.can('inventory')" to="/movimientos">Movimientos</RouterLink>
+        <RouterLink v-if="auth.can('requests')" to="/solicitudes">Solicitudes</RouterLink>
+        <RouterLink v-if="auth.can('donations')" to="/donaciones">Donaciones</RouterLink>
+        <RouterLink v-if="auth.can('needs')" to="/necesidades-admin">Necesidades</RouterLink>
+        <RouterLink v-if="auth.can('content')" to="/contenido">Contenido</RouterLink>
         <RouterLink v-if="auth.isAdmin" to="/usuarios">Usuarios</RouterLink>
-        <RouterLink v-if="auth.canManageTransport" to="/voluntarios-tiempo">
+        <RouterLink v-if="auth.can('time_volunteers')" to="/voluntarios-tiempo">
           Registro de voluntarios
         </RouterLink>
         <RouterLink to="/perfil">Mi perfil</RouterLink>

@@ -45,42 +45,43 @@ const router = createRouter({
         {
           path: '/inventario',
           name: 'inventario',
-          meta: { roles: ['admin', 'volunteer'] },
+          meta: { module: 'inventory' },
           component: () => import('@/views/InventarioView.vue'),
         },
         {
           path: '/movimientos',
           name: 'movimientos',
-          meta: { roles: ['admin', 'volunteer'] },
+          meta: { module: 'inventory' },
           component: () => import('@/views/MovimientosView.vue'),
         },
         {
           path: '/solicitudes',
           name: 'solicitudes',
+          meta: { module: 'requests' },
           component: () => import('@/views/SolicitudesView.vue'),
         },
         {
           path: '/donaciones',
           name: 'donaciones',
-          meta: { roles: ['admin', 'volunteer'] },
+          meta: { module: 'donations' },
           component: () => import('@/views/DonacionesView.vue'),
         },
         {
           path: '/necesidades-admin',
           name: 'necesidades-admin',
-          meta: { roles: ['admin', 'volunteer'] },
+          meta: { module: 'needs' },
           component: () => import('@/views/NecesidadesAdminView.vue'),
         },
         {
           path: '/contenido',
           name: 'contenido',
-          meta: { admin: true },
+          meta: { module: 'content' },
           component: () => import('@/views/ContenidoAdminView.vue'),
         },
         {
           path: '/voluntarios-tiempo',
           name: 'voluntarios-tiempo',
-          meta: { roles: ['admin', 'reception'] },
+          meta: { module: 'time_volunteers' },
           component: () => import('@/views/VoluntariosTiempoView.vue'),
         },
         {
@@ -119,6 +120,9 @@ router.beforeEach(async (to) => {
       }
     }
     if (to.meta.admin && !auth.isAdmin) {
+      return { name: 'panel' }
+    }
+    if (to.meta.module && !auth.can(to.meta.module)) {
       return { name: 'panel' }
     }
     if (to.meta.roles && auth.user && !to.meta.roles.includes(auth.user.role)) {
