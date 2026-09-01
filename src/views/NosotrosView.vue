@@ -48,7 +48,7 @@ onMounted(async () => {
       <h1>Quiénes somos</h1>
       <p class="script">Dona con amor, abriga con esperanza.</p>
       <p>
-        ABRIGAR es un esfuerzo colectivo para que ninguna familia afectada por el sismo pase la
+        Entretejidos es un esfuerzo colectivo para que ninguna familia afectada por el sismo pase la
         noche sin abrigo.
       </p>
     </header>

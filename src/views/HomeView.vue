@@ -25,11 +25,11 @@ onMounted(async () => {
 <template>
   <section class="hero">
     <div class="hero-text">
-      <p class="eyebrow">Comité de donación de ropa</p>
+      <p class="eyebrow">Comité de Abrigo</p>
       <h1>Organizar la ayuda, de la donación a la entrega.</h1>
       <p class="script">Dona con amor, abriga con esperanza.</p>
       <p class="lead">
-        ABRIGAR centraliza voluntarios, inventario y solicitudes para que cada prenda llegue a
+        Entretejidos centraliza voluntarios, inventario y solicitudes para que cada prenda llegue a
         quien la necesita.
       </p>
       <div class="actions">
@@ -43,7 +43,7 @@ onMounted(async () => {
         <span>voluntarios activos</span>
       </div>
     </div>
-    <img src="/logo.jpeg" alt="Logo de ABRIGAR" class="hero-logo" />
+    <img src="/logo.jpeg" alt="Logo de Entretejidos" class="hero-logo" />
   </section>
 
   <section class="needs">

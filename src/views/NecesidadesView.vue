@@ -34,7 +34,7 @@ onMounted(async () => {
           <h2>{{ need.title }}</h2>
           <span v-if="need.source === 'inventario'" class="tag">Stock bajo</span>
         </div>
-        <p class="desc">{{ need.message || 'Recurso requerido para la operación de ABRIGAR.' }}</p>
+        <p class="desc">{{ need.message || 'Recurso requerido para la operación de Entretejidos.' }}</p>
         <div class="meta">
           <span>Cantidad orientativa: {{ need.quantityNeeded }}</span>
           <RouterLink class="btn btn-primary" to="/donar">Donar esto</RouterLink>

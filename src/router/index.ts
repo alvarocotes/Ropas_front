@@ -85,6 +85,12 @@ const router = createRouter({
           component: () => import('@/views/VoluntariosTiempoView.vue'),
         },
         {
+          path: '/bitacora',
+          name: 'bitacora',
+          meta: { module: 'shift_log' },
+          component: () => import('@/views/BitacoraView.vue'),
+        },
+        {
           path: '/horario',
           name: 'horario',
           component: () => import('@/views/HorarioView.vue'),

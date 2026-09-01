@@ -33,9 +33,9 @@ async function submit() {
 <template>
   <div class="screen">
     <form class="card box" @submit.prevent="submit">
-      <img src="/logo.jpeg" alt="Logo de ABRIGAR" class="logo" />
+      <img src="/logo.jpeg" alt="Logo de Entretejidos" class="logo" />
       <p class="eyebrow">Acceso interno</p>
-      <h1>Entrar a ABRIGAR</h1>
+      <h1>Entrar a Entretejidos</h1>
       <p class="hint">Solo voluntarios y el administrador del sistema.</p>
       <label class="field">
         <span>Correo</span>

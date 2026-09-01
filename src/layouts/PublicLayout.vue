@@ -17,10 +17,10 @@ watch(
   <div class="public">
     <header class="top">
       <RouterLink to="/" class="brand">
-        <img src="/logo.jpeg" alt="Logo de ABRIGAR" class="mark" />
+        <img src="/logo.jpeg" alt="Logo de Entretejidos" class="mark" />
         <span class="brand-text">
-          ABRIGAR
-          <small>Comité de donación de ropa</small>
+          Entretejidos
+          <small>Comité de Abrigo</small>
         </span>
       </RouterLink>
       <button
@@ -49,7 +49,7 @@ watch(
     <footer>
       <div class="weave-strip footer-strip" aria-hidden="true"></div>
       <p class="script">Dona con amor, abriga con esperanza.</p>
-      <p>ABRIGAR · Comité de donación de ropa · gestión de voluntarios, donaciones e inventario.</p>
+      <p>Entretejidos · Comité de Abrigo · gestión de voluntarios, donaciones e inventario.</p>
     </footer>
   </div>
 </template>

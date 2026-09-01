@@ -1,4 +1,4 @@
-Interfaz de ABRIGAR (Vue 3).
+Interfaz de Entretejidos (Vue 3).
 
 Instrucciones de arranque: ver el [README principal](../README.md).
 

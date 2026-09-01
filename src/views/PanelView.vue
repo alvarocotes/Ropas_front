@@ -5,8 +5,8 @@ import api from '@/api/client'
 import StatusBadge from '@/components/StatusBadge.vue'
 import { useLiveReload } from '@/composables/useLiveReload'
 import { useAuthStore } from '@/stores/auth'
-import type { Donation, HelpRequest, Product, StaffAttendance, TimeVolunteer } from '@/types'
-import { donationStatusLabel, isoWeekday, localIsoDate, requestStatusLabel, roleLabel } from '@/types'
+import type { Donation, HelpRequest, Product, ShiftLog, StaffAttendance, TimeVolunteer } from '@/types'
+import { donationStatusLabel, formatWorkDate, isoWeekday, localIsoDate, requestStatusLabel, roleLabel } from '@/types'
 
 const auth = useAuthStore()
 
@@ -22,6 +22,8 @@ const showInventory = computed(() => auth.can('inventory'))
 const showDonations = computed(() => auth.can('donations'))
 const showRequests = computed(() => auth.can('requests'))
 const canManageTransport = computed(() => auth.can('time_volunteers'))
+const showShiftLog = computed(() => auth.can('shift_log'))
+const shiftLogs = ref<ShiftLog[]>([])
 const today = localIsoDate()
 const todayIso = isoWeekday()
 const newTimeVolunteers = computed(() =>
@@ -45,12 +47,13 @@ useLiveReload(() => load({ quiet: true }))
 async function load(opts?: { quiet?: boolean }) {
   try {
     // Todo en paralelo: en producción cada ida y vuelta al servidor cuesta.
-    const [requestRes, alertRes, donationRes, scheduleRes, timeRes] = await Promise.all([
+    const [requestRes, alertRes, donationRes, scheduleRes, timeRes, logRes] = await Promise.all([
       showRequests.value ? api.get<HelpRequest[]>('/help-requests') : null,
       showInventory.value ? api.get<Product[]>('/inventory/alerts') : null,
       showDonations.value ? api.get<Donation[]>('/donations') : null,
       api.get<StaffAttendance[]>('/stats/staff-attendance', { params: { date: today } }),
       canManageTransport.value ? api.get<TimeVolunteer[]>('/time-volunteers') : null,
+      showShiftLog.value ? api.get<ShiftLog[]>('/shift-logs') : null,
     ])
     requests.value = (requestRes?.data ?? []).filter(
       (item) => item.status === 'recibido' || item.status === 'en_proceso',
@@ -62,6 +65,7 @@ async function load(opts?: { quiet?: boolean }) {
     )
     schedule.value = scheduleRes?.data ?? []
     timeVolunteers.value = timeRes?.data ?? []
+    shiftLogs.value = (logRes?.data ?? []).slice(0, 4)
   } catch {
     if (!opts?.quiet) {
       /* el panel no muestra un error global; las tarjetas quedan vacías */
@@ -113,6 +117,22 @@ async function load(opts?: { quiet?: boolean }) {
               <small class="muted">— {{ person.phone }}</small>
             </span>
             <StatusBadge tone="listo" :label="`${person.slot?.startTime} – ${person.slot?.endTime}`" />
+          </li>
+        </ul>
+      </article>
+
+      <article v-if="showShiftLog" class="card block">
+        <div class="head">
+          <h2>Últimas bitácoras</h2>
+          <RouterLink to="/bitacora">Ver bitácora</RouterLink>
+        </div>
+        <p v-if="shiftLogs.length === 0">Aún no hay turnos registrados.</p>
+        <ul>
+          <li v-for="row in shiftLogs" :key="row.id">
+            <span>
+              {{ row.authorName }}
+              <small class="muted">— {{ formatWorkDate(row.workDate) }} {{ row.startTime }}–{{ row.endTime }}</small>
+            </span>
           </li>
         </ul>
       </article>

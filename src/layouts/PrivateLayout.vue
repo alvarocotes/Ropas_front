@@ -17,8 +17,11 @@ function logout() {
     <aside>
       <div class="bar">
         <RouterLink to="/panel" class="brand">
-          <img src="/logo.jpeg" alt="Logo de ABRIGAR" class="mark" />
-          ABRIGAR
+          <img src="/logo.jpeg" alt="Logo de Entretejidos" class="mark" />
+          <span class="brand-text">
+            Entretejidos
+            <small>Comité de Abrigo</small>
+          </span>
         </RouterLink>
         <button class="logout-mobile btn btn-ghost" type="button" @click="logout">Salir</button>
       </div>
@@ -35,6 +38,7 @@ function logout() {
         <RouterLink v-if="auth.can('time_volunteers')" to="/voluntarios-tiempo">
           Registro de voluntarios
         </RouterLink>
+        <RouterLink v-if="auth.can('shift_log')" to="/bitacora">Bitácora</RouterLink>
         <RouterLink to="/perfil">Mi perfil</RouterLink>
       </nav>
       <div class="who">
@@ -88,8 +92,23 @@ aside {
   align-items: center;
   gap: 0.6rem;
   font-family: var(--display);
-  font-size: 1.35rem;
-  letter-spacing: 0.05em;
+  font-size: 1.15rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.brand-text small {
+  font-family: var(--sans);
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  opacity: 0.8;
   text-transform: uppercase;
 }
 

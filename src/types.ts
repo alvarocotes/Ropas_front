@@ -13,6 +13,7 @@ export type AppModule =
   | 'needs'
   | 'content'
   | 'time_volunteers'
+  | 'shift_log'
 
 export const MODULE_OPTIONS: { id: AppModule; label: string; short: string }[] = [
   { id: 'inventory', label: 'Inventario y movimientos', short: 'Inventario' },
@@ -21,12 +22,13 @@ export const MODULE_OPTIONS: { id: AppModule; label: string; short: string }[] =
   { id: 'needs', label: 'Necesidades públicas', short: 'Necesidades' },
   { id: 'content', label: 'Contenido (quiénes somos y mapa)', short: 'Contenido' },
   { id: 'time_volunteers', label: 'Registro de voluntarios', short: 'Voluntarios' },
+  { id: 'shift_log', label: 'Bitácora por turno', short: 'Bitácora' },
 ]
 
 export function defaultModulesForRole(role: UserRole): AppModule[] {
   if (role === 'admin') return MODULE_OPTIONS.map((item) => item.id)
-  if (role === 'reception') return ['requests', 'time_volunteers']
-  return ['inventory', 'donations', 'requests', 'needs']
+  if (role === 'reception') return ['requests', 'time_volunteers', 'shift_log']
+  return ['inventory', 'donations', 'requests', 'needs', 'shift_log']
 }
 
 export function formatModules(modules?: AppModule[], role?: UserRole): string {
@@ -73,6 +75,19 @@ export interface AttendanceRecord {
   date: string
   startTime: string
   endTime: string
+}
+
+export interface ShiftLog {
+  id: number
+  userId: number
+  authorName: string
+  workDate: string
+  startTime: string
+  endTime: string
+  summary: string
+  followUp: string
+  createdAt: string
+  updatedAt: string
 }
 
 export interface VolunteerSchedule {

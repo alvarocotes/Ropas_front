@@ -23,5 +23,6 @@ declare module 'vue-router' {
       | 'needs'
       | 'content'
       | 'time_volunteers'
+      | 'shift_log'
   }
 }
