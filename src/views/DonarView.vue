@@ -42,9 +42,9 @@ async function submit() {
   ok.value = false
   try {
     await api.post('/donations', {
-      donorName: form.donorName || undefined,
-      contact: form.contact || undefined,
-      notes: form.notes || undefined,
+      donorName: form.donorName.trim(),
+      contact: form.contact.trim(),
+      notes: form.notes.trim() || undefined,
       items: form.items.filter((item) => item.productName.trim()),
     })
     ok.value = true
@@ -63,7 +63,10 @@ async function submit() {
 <template>
   <section class="page">
     <h1>Registrar una donación</h1>
-    <p>Indica qué vas a entregar. El equipo confirmará la recepción e ingresará los productos al inventario.</p>
+    <p>
+      Deja tu nombre, un contacto y qué vas a entregar. El equipo te escribirá para coordinar y
+      luego ingresará los productos al inventario.
+    </p>
 
     <div v-if="needs.length" class="hints">
       <p>Sugerencias actuales:</p>
@@ -75,12 +78,19 @@ async function submit() {
     <form class="card form" @submit.prevent="submit">
       <div class="grid-2">
         <label class="field">
-          <span>Tu nombre (opcional)</span>
-          <input v-model="form.donorName" />
+          <span>Tu nombre</span>
+          <input v-model="form.donorName" required minlength="2" autocomplete="name" />
         </label>
         <label class="field">
-          <span>Contacto (opcional)</span>
-          <input v-model="form.contact" />
+          <span>Celular / WhatsApp</span>
+          <input
+            v-model="form.contact"
+            required
+            minlength="7"
+            type="tel"
+            autocomplete="tel"
+            placeholder="Para coordinar la entrega"
+          />
         </label>
       </div>
 

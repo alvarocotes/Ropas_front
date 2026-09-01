@@ -173,7 +173,10 @@ async function load(opts?: { quiet?: boolean }) {
         <p v-if="donations.length === 0">No hay donaciones pendientes.</p>
         <ul>
           <li v-for="donation in donations" :key="donation.id">
-            <span>{{ donation.donorName || 'Anónima' }}</span>
+            <span>
+              {{ donation.donorName || 'Anónima' }}
+              <small v-if="donation.contact" class="muted">— {{ donation.contact }}</small>
+            </span>
             <StatusBadge :tone="donation.status" :label="donationStatusLabel[donation.status]" />
           </li>
         </ul>
