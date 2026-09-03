@@ -5,7 +5,8 @@ import OverlayCard from '@/components/OverlayCard.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
 import { useLiveReload } from '@/composables/useLiveReload'
 import { useAuthStore } from '@/stores/auth'
-import type { Product } from '@/types'
+import type { ClothingAudience, Product } from '@/types'
+import { clothingAudienceLabel } from '@/types'
 
 const auth = useAuthStore()
 const products = ref<Product[]>([])
@@ -18,6 +19,8 @@ const productForm = reactive({
   minQuantity: 5,
   publishWhenLow: false,
   publicNote: '',
+  audience: '' as ClothingAudience | '',
+  sizeLabel: '',
 })
 const busyId = ref<number | null>(null)
 const stockMove = ref<{
@@ -36,6 +39,8 @@ const editForm = reactive({
   minQuantity: 5,
   publishWhenLow: false,
   publicNote: '',
+  audience: '' as ClothingAudience | '',
+  sizeLabel: '',
 })
 const savingEdit = ref(false)
 
@@ -73,13 +78,19 @@ useLiveReload(() => load({ quiet: true }), {
 async function createProduct() {
   error.value = ''
   try {
-    await api.post('/inventory/products', productForm)
+    await api.post('/inventory/products', {
+      ...productForm,
+      audience: productForm.audience || null,
+      sizeLabel: productForm.sizeLabel.trim() || null,
+    })
     productForm.name = ''
     productForm.unit = 'unidad'
     productForm.quantity = 0
     productForm.minQuantity = 5
     productForm.publishWhenLow = false
     productForm.publicNote = ''
+    productForm.audience = ''
+    productForm.sizeLabel = ''
     showCreate.value = false
     await load()
   } catch (err) {
@@ -166,6 +177,8 @@ function startEdit(product: Product) {
   editForm.minQuantity = product.minQuantity
   editForm.publishWhenLow = product.publishWhenLow
   editForm.publicNote = product.publicNote ?? ''
+  editForm.audience = product.audience ?? ''
+  editForm.sizeLabel = product.sizeLabel ?? ''
   error.value = ''
 }
 
@@ -195,6 +208,8 @@ async function saveEdit() {
       minQuantity: editForm.minQuantity,
       publishWhenLow: editForm.publishWhenLow,
       publicNote: editForm.publicNote.trim(),
+      audience: editForm.audience || null,
+      sizeLabel: editForm.sizeLabel.trim() || null,
     })
     editingId.value = null
     await load()
@@ -253,6 +268,19 @@ function isLow(product: Product) {
       <p v-if="error" class="flash flash-error">{{ error }}</p>
       <label class="field"><span>Nombre</span><input v-model="productForm.name" required /></label>
       <label class="field"><span>Unidad</span><input v-model="productForm.unit" /></label>
+      <div class="times">
+        <label class="field">
+          <span>Para quién (si es ropa)</span>
+          <select v-model="productForm.audience">
+            <option value="">No aplica</option>
+            <option v-for="(label, id) in clothingAudienceLabel" :key="id" :value="id">{{ label }}</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>Talla</span>
+          <input v-model="productForm.sizeLabel" maxlength="40" placeholder="Ej. M, 32, 8" />
+        </label>
+      </div>
       <label class="field"><span>Cantidad inicial</span><input v-model.number="productForm.quantity" type="number" min="0" /></label>
       <label class="field"><span>Mínimo para alerta</span><input v-model.number="productForm.minQuantity" type="number" min="0" /></label>
       <label class="check">
@@ -282,6 +310,19 @@ function isLow(product: Product) {
         <span>Unidad</span>
         <input v-model="editForm.unit" required />
       </label>
+      <div class="times">
+        <label class="field">
+          <span>Para quién (si es ropa)</span>
+          <select v-model="editForm.audience">
+            <option value="">No aplica</option>
+            <option v-for="(label, id) in clothingAudienceLabel" :key="id" :value="id">{{ label }}</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>Talla</span>
+          <input v-model="editForm.sizeLabel" maxlength="40" placeholder="Ej. M, 32, 8" />
+        </label>
+      </div>
       <label class="field">
         <span>Mínimo para alerta</span>
         <input v-model.number="editForm.minQuantity" type="number" min="0" />
@@ -381,6 +422,10 @@ function isLow(product: Product) {
           <StatusBadge v-if="isLow(product)" tone="alerta" label="Stock bajo" />
           <StatusBadge v-else tone="listo" label="OK" />
         </header>
+        <p v-if="product.audience || product.sizeLabel" class="meta">
+          <template v-if="product.audience">{{ clothingAudienceLabel[product.audience] }}</template>
+          <template v-if="product.sizeLabel"> · talla {{ product.sizeLabel }}</template>
+        </p>
 
         <div class="figure">
           <strong>{{ product.quantity }}</strong>
@@ -450,6 +495,11 @@ function isLow(product: Product) {
 h1 { font-size: clamp(1.6rem, 7vw, 2.2rem); }
 .lead { color: var(--ink-soft); }
 .form { display: grid; gap: 0.8rem; }
+.times { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+.meta { color: var(--ink-soft); font-size: 0.88rem; margin: 0; }
+@media (max-width: 520px) {
+  .times { grid-template-columns: 1fr; }
+}
 .mini { width: 90px; border: 1px solid var(--line); border-radius: 8px; padding: 0.3rem 0.4rem; }
 .hint { color: var(--ink-soft); font-size: 0.9rem; margin: -0.3rem 0 0.2rem; }
 .block-head { margin-top: 1.1rem; }

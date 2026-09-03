@@ -219,6 +219,18 @@ export interface TimeVolunteer {
   availability: AvailabilitySlot[]
 }
 
+export type ClothingAudience = 'woman' | 'man' | 'girl' | 'boy' | 'baby'
+
+export type ClothingSizes = Record<ClothingAudience, string[]>
+
+export const clothingAudienceLabel: Record<ClothingAudience, string> = {
+  woman: 'Mujer',
+  man: 'Hombre',
+  girl: 'Niña',
+  boy: 'Niño',
+  baby: 'Bebé',
+}
+
 export interface Product {
   id: number
   name: string
@@ -228,6 +240,8 @@ export interface Product {
   isActive: boolean
   publishWhenLow: boolean
   publicNote: string | null
+  audience?: ClothingAudience | null
+  sizeLabel?: string | null
 }
 
 export interface InventoryMovement {
@@ -338,6 +352,14 @@ export function formatHousehold(request: {
     return `${request.peopleCount} persona${request.peopleCount === 1 ? '' : 's'}`
   }
   return parts.join(', ')
+}
+
+/** Une camisas y pantalones en una sola lista de tallas cuando coinciden. */
+export function formatClothingSizes(shirt?: string | null, pants?: string | null): string {
+  const a = (shirt ?? '').trim()
+  const b = (pants ?? '').trim()
+  if (a && b && a !== b) return `${a} · ${b}`
+  return a || b
 }
 
 export interface PublicNeed {

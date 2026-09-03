@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { reactive, computed, ref } from 'vue'
+import { reactive, computed, onMounted, ref } from 'vue'
 import api, { apiErrorMessage } from '@/api/client'
+import type { ClothingAudience, ClothingSizes } from '@/types'
+import { clothingAudienceLabel } from '@/types'
 
 const DIAPER_STAGES = [
   'Recién nacido',
@@ -11,6 +13,14 @@ const DIAPER_STAGES = [
   'Etapa 5',
   'Etapa 6',
 ]
+
+const emptySizes = (): ClothingSizes => ({
+  woman: [],
+  man: [],
+  girl: [],
+  boy: [],
+  baby: [],
+})
 
 const emptyForm = () => ({
   fullName: '',
@@ -25,15 +35,11 @@ const emptyForm = () => ({
   boysCount: 0,
   babiesCount: 0,
   hasOwnTransport: 'no' as 'si' | 'no',
-  babySizes: '',
-  girlShirtSizes: '',
-  girlPantsSizes: '',
-  womanShirtSizes: '',
-  womanPantsSizes: '',
-  boyShirtSizes: '',
-  boyPantsSizes: '',
-  manShirtSizes: '',
-  manPantsSizes: '',
+  womanSizes: {} as Record<string, number>,
+  manSizes: {} as Record<string, number>,
+  girlSizes: {} as Record<string, number>,
+  boySizes: {} as Record<string, number>,
+  babySizes: {} as Record<string, number>,
   underwearNeeds: '',
   needsLinens: 'no' as 'si' | 'no',
   needsDiapers: 'no' as 'si' | 'no',
@@ -43,9 +49,31 @@ const emptyForm = () => ({
 })
 
 const form = reactive(emptyForm())
+const catalog = ref<ClothingSizes>(emptySizes())
 const sending = ref(false)
 const ok = ref(false)
 const error = ref('')
+
+const sizeGroups: {
+  count: () => number
+  key: ClothingAudience
+  qty: () => Record<string, number>
+}[] = [
+  { count: () => asCount(form.womenCount), key: 'woman', qty: () => form.womanSizes },
+  { count: () => asCount(form.menCount), key: 'man', qty: () => form.manSizes },
+  { count: () => asCount(form.girlsCount), key: 'girl', qty: () => form.girlSizes },
+  { count: () => asCount(form.boysCount), key: 'boy', qty: () => form.boySizes },
+  { count: () => asCount(form.babiesCount), key: 'baby', qty: () => form.babySizes },
+]
+
+onMounted(async () => {
+  try {
+    const { data } = await api.get<ClothingSizes>('/inventory/clothing-sizes')
+    catalog.value = { ...emptySizes(), ...data }
+  } catch {
+    catalog.value = emptySizes()
+  }
+})
 
 function asCount(value: unknown) {
   const n = Number(value)
@@ -77,6 +105,23 @@ function toggleStage(stage: string) {
   }
 }
 
+function setSizeQty(map: Record<string, number>, size: string, value: unknown) {
+  const n = asCount(value)
+  if (n <= 0) delete map[size]
+  else map[size] = n
+}
+
+function assignedPeople(map: Record<string, number>) {
+  return Object.values(map).reduce((sum, n) => sum + asCount(n), 0)
+}
+
+function joinSizes(map: Record<string, number>) {
+  const parts = Object.entries(map)
+    .filter(([, n]) => asCount(n) > 0)
+    .map(([size, n]) => `${size} × ${asCount(n)}`)
+  return parts.length ? parts.join(', ') : undefined
+}
+
 async function submit() {
   sending.value = true
   error.value = ''
@@ -92,9 +137,13 @@ async function submit() {
     return
   }
   try {
-    const { diaperStages, ...fields } = form
     await api.post('/help-requests', {
-      ...fields,
+      fullName: form.fullName,
+      residenceBefore: form.residenceBefore,
+      residenceAfter: form.residenceAfter,
+      phoneWhatsapp: form.phoneWhatsapp,
+      affectationType: form.affectationType,
+      clothingScope: form.clothingScope,
       womenCount: asCount(form.womenCount),
       menCount: asCount(form.menCount),
       girlsCount: asCount(form.girlsCount),
@@ -102,10 +151,17 @@ async function submit() {
       babiesCount: asCount(form.babiesCount),
       peopleCount: peopleCount.value,
       hasOwnTransport: form.hasOwnTransport === 'si',
+      babySizes: joinSizes(form.babySizes),
+      girlShirtSizes: joinSizes(form.girlSizes),
+      womanShirtSizes: joinSizes(form.womanSizes),
+      boyShirtSizes: joinSizes(form.boySizes),
+      manShirtSizes: joinSizes(form.manSizes),
+      underwearNeeds: form.underwearNeeds || undefined,
       needsLinens: form.needsLinens === 'si',
       needsDiapers: form.needsDiapers === 'si',
-      diaperStage: form.needsDiapers === 'si' ? diaperStages.join(', ') : undefined,
+      diaperStage: form.needsDiapers === 'si' ? form.diaperStages.join(', ') : undefined,
       needsSanitary: form.needsSanitary === 'si',
+      additionalNeeds: form.additionalNeeds || undefined,
     })
     ok.value = true
     Object.assign(form, emptyForm())
@@ -213,45 +269,43 @@ async function submit() {
 
       <fieldset>
         <legend>Tallas de ropa</legend>
-        <p class="hint">Si no aplica, déjalo en blanco. Puedes escribir varias: 2, 4, M, L…</p>
-        <label class="field">
-          <span>Talla(s) / edad(es) para ropa de bebé</span>
-          <input v-model="form.babySizes" />
-        </label>
-        <div class="grid-2">
-          <label class="field">
-            <span>Camisas / camisetas de niña</span>
-            <input v-model="form.girlShirtSizes" />
-          </label>
-          <label class="field">
-            <span>Pantalones de niña</span>
-            <input v-model="form.girlPantsSizes" />
-          </label>
-          <label class="field">
-            <span>Blusas / camisas / camisetas de mujer</span>
-            <input v-model="form.womanShirtSizes" />
-          </label>
-          <label class="field">
-            <span>Pantalones de mujer</span>
-            <input v-model="form.womanPantsSizes" />
-          </label>
-          <label class="field">
-            <span>Camisas / camisetas de niño</span>
-            <input v-model="form.boyShirtSizes" />
-          </label>
-          <label class="field">
-            <span>Pantalones de niño</span>
-            <input v-model="form.boyPantsSizes" />
-          </label>
-          <label class="field">
-            <span>Camisas / camisetas de hombre</span>
-            <input v-model="form.manShirtSizes" />
-          </label>
-          <label class="field">
-            <span>Pantalones de hombre</span>
-            <input v-model="form.manPantsSizes" />
-          </label>
-        </div>
+        <p class="hint">
+          En cada talla indica para cuántas personas es. No hace falta decir si es de arriba o de
+          abajo.
+        </p>
+        <template v-for="group in sizeGroups" :key="group.key">
+          <fieldset v-if="group.count() > 0" class="stages">
+            <legend>Tallas de {{ clothingAudienceLabel[group.key].toLowerCase() }}</legend>
+            <p v-if="catalog[group.key].length === 0" class="hint">
+              Aún no hay tallas de {{ clothingAudienceLabel[group.key].toLowerCase() }} en
+              inventario.
+            </p>
+            <template v-else>
+              <p class="hint">
+                {{ assignedPeople(group.qty()) }} de {{ group.count() }} persona{{
+                  group.count() === 1 ? '' : 's'
+                }}
+                con talla.
+              </p>
+              <div class="size-qty">
+                <label v-for="size in catalog[group.key]" :key="size" class="qty-row">
+                  <span>{{ size }}</span>
+                  <input
+                    type="number"
+                    min="0"
+                    :max="group.count()"
+                    :value="group.qty()[size] || 0"
+                    :aria-label="`Personas talla ${size}`"
+                    @input="
+                      setSizeQty(group.qty(), size, ($event.target as HTMLInputElement).value)
+                    "
+                  />
+                  <small>personas</small>
+                </label>
+              </div>
+            </template>
+          </fieldset>
+        </template>
         <label class="field">
           <span>¿Qué tipo de ropa interior necesitas?</span>
           <input v-model="form.underwearNeeds" placeholder="Ej. interiores de mujer talla M, niños 8 años…" />
@@ -374,6 +428,33 @@ legend {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
   gap: 0.35rem 0.8rem;
+}
+
+.size-qty {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.qty-row {
+  display: grid;
+  grid-template-columns: minmax(3.5rem, 1fr) 5.5rem auto;
+  align-items: center;
+  gap: 0.65rem;
+  min-height: 44px;
+}
+
+.qty-row span {
+  font-weight: 700;
+}
+
+.qty-row input {
+  width: 100%;
+  min-height: 44px;
+  text-align: center;
+}
+
+.qty-row small {
+  color: var(--ink-soft);
 }
 
 .people-grid {
