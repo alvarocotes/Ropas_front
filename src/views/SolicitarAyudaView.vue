@@ -52,11 +52,23 @@ const emptyForm = () => ({
   additionalNeeds: '',
 })
 
+const STEPS = [
+  { title: 'Contacto', hint: 'Cómo te localizamos' },
+  { title: 'Residencia', hint: 'Dónde enviar la ayuda' },
+  { title: 'Personas', hint: 'Quiénes necesitan ropa' },
+  { title: 'Tallas', hint: 'Ropa por grupo' },
+  { title: 'Insumos', hint: 'Pañales, sábanas y más' },
+] as const
+
+const LAST_STEP = STEPS.length
+
 const form = reactive(emptyForm())
 const catalog = ref<ClothingSizes>(emptySizes())
 const sending = ref(false)
 const ok = ref(false)
 const error = ref('')
+const step = ref(1)
+const formEl = ref<HTMLFormElement | null>(null)
 
 const sizeGroups: {
   count: () => number
@@ -154,6 +166,47 @@ function hasCatalogSizes(key: ClothingAudience) {
   return catalog.value[key].length > 0
 }
 
+function currentStepValid() {
+  return Boolean(formEl.value?.reportValidity())
+}
+
+function validateStep(n: number) {
+  error.value = ''
+  if (n <= 3 && !currentStepValid()) return false
+  if (n === 3 && peopleCount.value < 1) {
+    error.value = 'Indica cuántas mujeres, hombres, niñas, niños y bebés necesitan ropa.'
+    return false
+  }
+  if (n === 5 && form.needsDiapers === 'si' && form.diaperStages.length === 0) {
+    error.value = 'Elige la etapa de pañal que necesitas.'
+    return false
+  }
+  return true
+}
+
+function goTo(n: number) {
+  step.value = n
+  error.value = ''
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+function next() {
+  if (!validateStep(step.value)) return
+  if (step.value < LAST_STEP) goTo(step.value + 1)
+}
+
+function back() {
+  if (step.value > 1) goTo(step.value - 1)
+}
+
+function onFormSubmit() {
+  if (step.value < LAST_STEP) {
+    next()
+    return
+  }
+  void submit()
+}
+
 async function submit() {
   sending.value = true
   error.value = ''
@@ -197,6 +250,7 @@ async function submit() {
     })
     ok.value = true
     Object.assign(form, emptyForm())
+    step.value = 1
     window.scrollTo({ top: 0, behavior: 'smooth' })
   } catch (err) {
     error.value = apiErrorMessage(err, 'No se pudo enviar la solicitud')
@@ -211,11 +265,27 @@ async function submit() {
     <h1>Solicitar ropa y ayuda</h1>
     <p>
       Completa este formulario si necesitas donaciones de ropa u otros insumos. A la dirección
-      posterior al terremoto enviaremos los paquetes.
+      posterior al terremoto enviaremos los paquetes. Son {{ LAST_STEP }} pasos cortos.
     </p>
 
-    <form class="card form" @submit.prevent="submit">
-      <fieldset>
+    <nav class="progress" aria-label="Progreso del formulario">
+      <ol>
+        <li
+          v-for="(item, i) in STEPS"
+          :key="item.title"
+          :class="{ current: step === i + 1, done: step > i + 1 }"
+        >
+          <span class="dot">{{ i + 1 }}</span>
+          <span class="label">{{ item.title }}</span>
+        </li>
+      </ol>
+      <p class="progress-caption">
+        Paso {{ step }} de {{ LAST_STEP }} · {{ STEPS[step - 1].hint }}
+      </p>
+    </nav>
+
+    <form class="card form" ref="formEl" @submit.prevent="onFormSubmit">
+      <fieldset v-if="step === 1">
         <legend>Datos de contacto</legend>
         <label class="field">
           <span>Nombre completo</span>
@@ -227,7 +297,7 @@ async function submit() {
         </label>
       </fieldset>
 
-      <fieldset>
+      <fieldset v-if="step === 2">
         <legend>Residencia</legend>
         <label class="field">
           <span>Lugar de residencia (antes del terremoto)</span>
@@ -244,7 +314,7 @@ async function submit() {
         </label>
       </fieldset>
 
-      <fieldset>
+      <fieldset v-if="step === 3">
         <legend>Afectación y alcance</legend>
         <label class="field">
           <span>Tipo de afectación sufrida</span>
@@ -299,7 +369,7 @@ async function submit() {
         </label>
       </fieldset>
 
-      <fieldset>
+      <fieldset v-if="step === 4">
         <legend>Tallas de ropa</legend>
         <p class="hint">
           En cada talla indica para cuántas personas es. Los títulos (blusa, camisa, inferior…)
@@ -355,7 +425,7 @@ async function submit() {
         </label>
       </fieldset>
 
-      <fieldset>
+      <fieldset v-if="step === 5">
         <legend>Otros insumos</legend>
         <label class="field">
           <span>¿Necesitas sábanas, cobijas y toallas?</span>
@@ -403,9 +473,22 @@ async function submit() {
 
       <p v-if="error" class="flash flash-error">{{ error }}</p>
       <p v-if="ok" class="flash flash-ok">Solicitud recibida. Un voluntario la tomará en proceso.</p>
-      <button class="btn btn-primary" type="submit" :disabled="sending">
-        {{ sending ? 'Enviando...' : 'Enviar solicitud' }}
-      </button>
+      <div class="wizard-nav">
+        <button
+          class="btn btn-ghost"
+          type="button"
+          :disabled="step === 1 || sending"
+          @click="back"
+        >
+          Atrás
+        </button>
+        <button v-if="step < LAST_STEP" class="btn btn-primary" type="submit">
+          Siguiente
+        </button>
+        <button v-else class="btn btn-primary" type="submit" :disabled="sending">
+          {{ sending ? 'Enviando...' : 'Enviar solicitud' }}
+        </button>
+      </div>
     </form>
   </section>
 </template>
@@ -422,11 +505,79 @@ h1 {
   margin-bottom: 0.5rem;
 }
 
+.progress {
+  margin: 1.2rem 0 0;
+}
+
+.progress ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.35rem;
+}
+
+.progress li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  text-align: center;
+  color: var(--ink-soft);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.progress .dot {
+  width: 1.85rem;
+  height: 1.85rem;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--line);
+  background: #fff;
+  font-size: 0.85rem;
+}
+
+.progress li.done .dot,
+.progress li.current .dot {
+  border-color: var(--terracotta);
+  background: var(--terracotta);
+  color: #fff;
+}
+
+.progress li.current .label {
+  color: var(--ink);
+}
+
+.progress-caption {
+  margin: 0.7rem 0 0;
+  color: var(--ink-soft);
+  font-size: 0.92rem;
+}
+
+@media (max-width: 560px) {
+  .progress .label {
+    display: none;
+  }
+}
+
 .form {
-  margin-top: 1.4rem;
+  margin-top: 1.1rem;
   padding: 1.1rem;
   display: grid;
   gap: 1.2rem;
+}
+
+.wizard-nav {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.7rem;
+}
+
+.wizard-nav .btn-primary {
+  justify-self: stretch;
 }
 
 fieldset {
