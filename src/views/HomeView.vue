@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import api from '@/api/client'
+import { brandLogo } from '@/brand'
 import type { PublicNeed } from '@/types'
 
 const count = ref<number | null>(null)
@@ -43,7 +44,7 @@ onMounted(async () => {
         <span>voluntarios activos</span>
       </div>
     </div>
-    <img src="/logo.jpeg" alt="Logo de Entretejidos" class="hero-logo" />
+    <img :src="brandLogo" alt="Logo de Entretejidos" class="hero-logo" />
   </section>
 
   <section class="needs">

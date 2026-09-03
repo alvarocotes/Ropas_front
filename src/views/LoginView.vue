@@ -3,6 +3,7 @@ import { onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { apiErrorMessage } from '@/api/client'
+import { brandLogo } from '@/brand'
 
 const auth = useAuthStore()
 const route = useRoute()
@@ -33,7 +34,7 @@ async function submit() {
 <template>
   <div class="screen">
     <form class="card box" @submit.prevent="submit">
-      <img src="/logo.jpeg" alt="Logo de Entretejidos" class="logo" />
+      <img :src="brandLogo" alt="Logo de Entretejidos" class="logo" />
       <p class="eyebrow">Acceso interno</p>
       <h1>Entrar a Entretejidos</h1>
       <p class="hint">Solo voluntarios y el administrador del sistema.</p>

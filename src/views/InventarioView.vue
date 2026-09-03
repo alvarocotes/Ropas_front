@@ -6,7 +6,7 @@ import StatusBadge from '@/components/StatusBadge.vue'
 import { useLiveReload } from '@/composables/useLiveReload'
 import { useAuthStore } from '@/stores/auth'
 import type { ClothingAudience, Product } from '@/types'
-import { clothingAudienceLabel } from '@/types'
+import { REQUEST_LABEL_SUGGESTIONS, clothingAudienceLabel } from '@/types'
 
 const auth = useAuthStore()
 const products = ref<Product[]>([])
@@ -20,6 +20,7 @@ const productForm = reactive({
   publishWhenLow: false,
   publicNote: '',
   audience: '' as ClothingAudience | '',
+  requestLabel: '',
   sizeLabel: '',
 })
 const busyId = ref<number | null>(null)
@@ -40,6 +41,7 @@ const editForm = reactive({
   publishWhenLow: false,
   publicNote: '',
   audience: '' as ClothingAudience | '',
+  requestLabel: '',
   sizeLabel: '',
 })
 const savingEdit = ref(false)
@@ -81,6 +83,7 @@ async function createProduct() {
     await api.post('/inventory/products', {
       ...productForm,
       audience: productForm.audience || null,
+      requestLabel: productForm.requestLabel.trim() || null,
       sizeLabel: productForm.sizeLabel.trim() || null,
     })
     productForm.name = ''
@@ -90,6 +93,7 @@ async function createProduct() {
     productForm.publishWhenLow = false
     productForm.publicNote = ''
     productForm.audience = ''
+    productForm.requestLabel = ''
     productForm.sizeLabel = ''
     showCreate.value = false
     await load()
@@ -178,6 +182,7 @@ function startEdit(product: Product) {
   editForm.publishWhenLow = product.publishWhenLow
   editForm.publicNote = product.publicNote ?? ''
   editForm.audience = product.audience ?? ''
+  editForm.requestLabel = product.requestLabel ?? ''
   editForm.sizeLabel = product.sizeLabel ?? ''
   error.value = ''
 }
@@ -209,6 +214,7 @@ async function saveEdit() {
       publishWhenLow: editForm.publishWhenLow,
       publicNote: editForm.publicNote.trim(),
       audience: editForm.audience || null,
+      requestLabel: editForm.requestLabel.trim() || null,
       sizeLabel: editForm.sizeLabel.trim() || null,
     })
     editingId.value = null
@@ -241,6 +247,9 @@ function isLow(product: Product) {
 
 <template>
   <section>
+    <datalist id="request-label-options">
+      <option v-for="item in REQUEST_LABEL_SUGGESTIONS" :key="item" :value="item" />
+    </datalist>
     <div class="page-head">
       <div>
         <h1>Inventario</h1>
@@ -270,10 +279,14 @@ function isLow(product: Product) {
       <label class="field"><span>Unidad</span><input v-model="productForm.unit" /></label>
       <div class="times">
         <label class="field">
-          <span>Para quién (si es ropa)</span>
+          <span>Para quién</span>
           <select v-model="productForm.audience">
-            <option value="">No aplica</option>
-            <option v-for="(label, id) in clothingAudienceLabel" :key="id" :value="id">{{ label }}</option>
+            <option value="">No aplica (no es ropa con talla)</option>
+            <option value="boy">Niño</option>
+            <option value="girl">Niña</option>
+            <option value="woman">Mujer</option>
+            <option value="man">Hombre</option>
+            <option value="baby">Bebé</option>
           </select>
         </label>
         <label class="field">
@@ -281,6 +294,16 @@ function isLow(product: Product) {
           <input v-model="productForm.sizeLabel" maxlength="40" placeholder="Ej. M, 32, 8" />
         </label>
       </div>
+      <label class="field">
+        <span>Cómo aparece a quien pide ayuda</span>
+        <input
+          v-model="productForm.requestLabel"
+          list="request-label-options"
+          maxlength="80"
+          placeholder="Ej. Blusa, Camisa hombre, Inferior"
+        />
+        <small class="hint">Ese texto es el título que verá en el formulario de solicitar ayuda.</small>
+      </label>
       <label class="field"><span>Cantidad inicial</span><input v-model.number="productForm.quantity" type="number" min="0" /></label>
       <label class="field"><span>Mínimo para alerta</span><input v-model.number="productForm.minQuantity" type="number" min="0" /></label>
       <label class="check">
@@ -312,10 +335,14 @@ function isLow(product: Product) {
       </label>
       <div class="times">
         <label class="field">
-          <span>Para quién (si es ropa)</span>
+          <span>Para quién</span>
           <select v-model="editForm.audience">
-            <option value="">No aplica</option>
-            <option v-for="(label, id) in clothingAudienceLabel" :key="id" :value="id">{{ label }}</option>
+            <option value="">No aplica (no es ropa con talla)</option>
+            <option value="boy">Niño</option>
+            <option value="girl">Niña</option>
+            <option value="woman">Mujer</option>
+            <option value="man">Hombre</option>
+            <option value="baby">Bebé</option>
           </select>
         </label>
         <label class="field">
@@ -323,6 +350,16 @@ function isLow(product: Product) {
           <input v-model="editForm.sizeLabel" maxlength="40" placeholder="Ej. M, 32, 8" />
         </label>
       </div>
+      <label class="field">
+        <span>Cómo aparece a quien pide ayuda</span>
+        <input
+          v-model="editForm.requestLabel"
+          list="request-label-options"
+          maxlength="80"
+          placeholder="Ej. Blusa, Camisa hombre, Inferior"
+        />
+        <small class="hint">Ese texto es el título que verá en el formulario de solicitar ayuda.</small>
+      </label>
       <label class="field">
         <span>Mínimo para alerta</span>
         <input v-model.number="editForm.minQuantity" type="number" min="0" />
@@ -422,8 +459,9 @@ function isLow(product: Product) {
           <StatusBadge v-if="isLow(product)" tone="alerta" label="Stock bajo" />
           <StatusBadge v-else tone="listo" label="OK" />
         </header>
-        <p v-if="product.audience || product.sizeLabel" class="meta">
+        <p v-if="product.audience || product.sizeLabel || product.requestLabel" class="meta">
           <template v-if="product.audience">{{ clothingAudienceLabel[product.audience] }}</template>
+          <template v-if="product.requestLabel"> · {{ product.requestLabel }}</template>
           <template v-if="product.sizeLabel"> · talla {{ product.sizeLabel }}</template>
         </p>
 

@@ -22,6 +22,10 @@ const emptySizes = (): ClothingSizes => ({
   baby: [],
 })
 
+type SizeQty = Record<string, Record<string, number>>
+
+const emptyQty = (): SizeQty => ({})
+
 const emptyForm = () => ({
   fullName: '',
   residenceBefore: '',
@@ -35,11 +39,11 @@ const emptyForm = () => ({
   boysCount: 0,
   babiesCount: 0,
   hasOwnTransport: 'no' as 'si' | 'no',
-  womanSizes: {} as Record<string, number>,
-  manSizes: {} as Record<string, number>,
-  girlSizes: {} as Record<string, number>,
-  boySizes: {} as Record<string, number>,
-  babySizes: {} as Record<string, number>,
+  womanSizes: emptyQty(),
+  manSizes: emptyQty(),
+  girlSizes: emptyQty(),
+  boySizes: emptyQty(),
+  babySizes: emptyQty(),
   underwearNeeds: '',
   needsLinens: 'no' as 'si' | 'no',
   needsDiapers: 'no' as 'si' | 'no',
@@ -57,7 +61,7 @@ const error = ref('')
 const sizeGroups: {
   count: () => number
   key: ClothingAudience
-  qty: () => Record<string, number>
+  qty: () => SizeQty
 }[] = [
   { count: () => asCount(form.womenCount), key: 'woman', qty: () => form.womanSizes },
   { count: () => asCount(form.menCount), key: 'man', qty: () => form.manSizes },
@@ -69,7 +73,13 @@ const sizeGroups: {
 onMounted(async () => {
   try {
     const { data } = await api.get<ClothingSizes>('/inventory/clothing-sizes')
-    catalog.value = { ...emptySizes(), ...data }
+    catalog.value = {
+      woman: data.woman ?? [],
+      man: data.man ?? [],
+      girl: data.girl ?? [],
+      boy: data.boy ?? [],
+      baby: data.baby ?? [],
+    }
   } catch {
     catalog.value = emptySizes()
   }
@@ -111,7 +121,16 @@ function setSizeQty(map: Record<string, number>, size: string, value: unknown) {
   else map[size] = n
 }
 
-function assignedPeople(map: Record<string, number>) {
+function qtyFor(qty: SizeQty, label: string) {
+  if (!qty[label]) qty[label] = {}
+  return qty[label]
+}
+
+function assignedPeople(qty: SizeQty) {
+  return Object.values(qty).reduce((sum, map) => sum + assignedPart(map), 0)
+}
+
+function assignedPart(map: Record<string, number>) {
   return Object.values(map).reduce((sum, n) => sum + asCount(n), 0)
 }
 
@@ -120,6 +139,19 @@ function joinSizes(map: Record<string, number>) {
     .filter(([, n]) => asCount(n) > 0)
     .map(([size, n]) => `${size} × ${asCount(n)}`)
   return parts.length ? parts.join(', ') : undefined
+}
+
+function joinLabeled(qty: SizeQty) {
+  const parts: string[] = []
+  for (const [label, sizes] of Object.entries(qty)) {
+    const chunk = joinSizes(sizes)
+    if (chunk) parts.push(`${label}: ${chunk}`)
+  }
+  return parts.length ? parts.join(' · ') : undefined
+}
+
+function hasCatalogSizes(key: ClothingAudience) {
+  return catalog.value[key].length > 0
 }
 
 async function submit() {
@@ -151,11 +183,11 @@ async function submit() {
       babiesCount: asCount(form.babiesCount),
       peopleCount: peopleCount.value,
       hasOwnTransport: form.hasOwnTransport === 'si',
-      babySizes: joinSizes(form.babySizes),
-      girlShirtSizes: joinSizes(form.girlSizes),
-      womanShirtSizes: joinSizes(form.womanSizes),
-      boyShirtSizes: joinSizes(form.boySizes),
-      manShirtSizes: joinSizes(form.manSizes),
+      babySizes: joinLabeled(form.babySizes),
+      girlShirtSizes: joinLabeled(form.girlSizes),
+      womanShirtSizes: joinLabeled(form.womanSizes),
+      boyShirtSizes: joinLabeled(form.boySizes),
+      manShirtSizes: joinLabeled(form.manSizes),
       underwearNeeds: form.underwearNeeds || undefined,
       needsLinens: form.needsLinens === 'si',
       needsDiapers: form.needsDiapers === 'si',
@@ -270,13 +302,13 @@ async function submit() {
       <fieldset>
         <legend>Tallas de ropa</legend>
         <p class="hint">
-          En cada talla indica para cuántas personas es. No hace falta decir si es de arriba o de
-          abajo.
+          En cada talla indica para cuántas personas es. Los títulos (blusa, camisa, inferior…)
+          salen como los configuró el inventario.
         </p>
         <template v-for="group in sizeGroups" :key="group.key">
           <fieldset v-if="group.count() > 0" class="stages">
             <legend>Tallas de {{ clothingAudienceLabel[group.key].toLowerCase() }}</legend>
-            <p v-if="catalog[group.key].length === 0" class="hint">
+            <p v-if="!hasCatalogSizes(group.key)" class="hint">
               Aún no hay tallas de {{ clothingAudienceLabel[group.key].toLowerCase() }} en
               inventario.
             </p>
@@ -287,21 +319,32 @@ async function submit() {
                 }}
                 con talla.
               </p>
-              <div class="size-qty">
-                <label v-for="size in catalog[group.key]" :key="size" class="qty-row">
-                  <span>{{ size }}</span>
-                  <input
-                    type="number"
-                    min="0"
-                    :max="group.count()"
-                    :value="group.qty()[size] || 0"
-                    :aria-label="`Personas talla ${size}`"
-                    @input="
-                      setSizeQty(group.qty(), size, ($event.target as HTMLInputElement).value)
-                    "
-                  />
-                  <small>personas</small>
-                </label>
+              <div
+                v-for="offer in catalog[group.key]"
+                :key="offer.label"
+                class="garment-block"
+              >
+                <h3>{{ offer.label }}</h3>
+                <div class="size-qty">
+                  <label v-for="size in offer.sizes" :key="`${offer.label}-${size}`" class="qty-row">
+                    <span>{{ size }}</span>
+                    <input
+                      type="number"
+                      min="0"
+                      :max="group.count()"
+                      :value="qtyFor(group.qty(), offer.label)[size] || 0"
+                      :aria-label="`${offer.label} talla ${size}`"
+                      @input="
+                        setSizeQty(
+                          qtyFor(group.qty(), offer.label),
+                          size,
+                          ($event.target as HTMLInputElement).value,
+                        )
+                      "
+                    />
+                    <small>personas</small>
+                  </label>
+                </div>
               </div>
             </template>
           </fieldset>
@@ -433,6 +476,12 @@ legend {
 .size-qty {
   display: grid;
   gap: 0.45rem;
+}
+
+.garment-block h3 {
+  font-size: 1rem;
+  text-transform: none;
+  margin: 0.35rem 0 0.35rem;
 }
 
 .qty-row {

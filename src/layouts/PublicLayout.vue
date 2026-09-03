@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { RouterLink, RouterView, useRoute } from 'vue-router'
+import { brandLogo } from '@/brand'
 
 const route = useRoute()
 const menuOpen = ref(false)
@@ -17,7 +18,7 @@ watch(
   <div class="public">
     <header class="top">
       <RouterLink to="/" class="brand">
-        <img src="/logo.jpeg" alt="Logo de Entretejidos" class="mark" />
+        <img :src="brandLogo" alt="Logo de Entretejidos" class="mark" />
         <span class="brand-text">
           Entretejidos
           <small>Comité de Abrigo</small>

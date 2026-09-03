@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { RouterLink, RouterView, useRouter } from 'vue-router'
+import { brandLogo } from '@/brand'
 import { useAuthStore } from '@/stores/auth'
 import { roleLabel } from '@/types'
 
@@ -17,7 +18,7 @@ function logout() {
     <aside>
       <div class="bar">
         <RouterLink to="/panel" class="brand">
-          <img src="/logo.jpeg" alt="Logo de Entretejidos" class="mark" />
+          <img :src="brandLogo" alt="Logo de Entretejidos" class="mark" />
           <span class="brand-text">
             Entretejidos
             <small>Comité de Abrigo</small>

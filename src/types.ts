@@ -221,7 +221,11 @@ export interface TimeVolunteer {
 
 export type ClothingAudience = 'woman' | 'man' | 'girl' | 'boy' | 'baby'
 
-export type ClothingSizes = Record<ClothingAudience, string[]>
+export type ClothingGarment = 'superior' | 'inferior'
+
+export type ClothingSizeOffer = { label: string; sizes: string[] }
+
+export type ClothingSizes = Record<ClothingAudience, ClothingSizeOffer[]>
 
 export const clothingAudienceLabel: Record<ClothingAudience, string> = {
   woman: 'Mujer',
@@ -229,6 +233,29 @@ export const clothingAudienceLabel: Record<ClothingAudience, string> = {
   girl: 'Niña',
   boy: 'Niño',
   baby: 'Bebé',
+}
+
+export const REQUEST_LABEL_SUGGESTIONS = [
+  'Blusa',
+  'Camisa hombre',
+  'Camisa niño',
+  'Inferior',
+  'Pantalón',
+  'Short',
+  'Body',
+]
+
+export const clothingGarmentLabel: Record<ClothingGarment, string> = {
+  superior: 'Superior',
+  inferior: 'Inferior',
+}
+
+export function garmentPartLabel(audience: ClothingAudience, garment: ClothingGarment): string {
+  if (garment === 'inferior') return 'Inferior'
+  if (audience === 'man') return 'Camisa hombre'
+  if (audience === 'boy') return 'Camisa niño'
+  if (audience === 'baby') return 'Superior'
+  return 'Blusa'
 }
 
 export interface Product {
@@ -241,6 +268,8 @@ export interface Product {
   publishWhenLow: boolean
   publicNote: string | null
   audience?: ClothingAudience | null
+  garment?: ClothingGarment | null
+  requestLabel?: string | null
   sizeLabel?: string | null
 }
 

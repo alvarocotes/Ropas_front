@@ -6,7 +6,7 @@ import StatusBadge from '@/components/StatusBadge.vue'
 import { useLiveReload } from '@/composables/useLiveReload'
 import { useAuthStore } from '@/stores/auth'
 import type { HelpRequest, Product, RequestStatus } from '@/types'
-import { formatClothingSizes, formatHousehold, requestStatusLabel } from '@/types'
+import { formatHousehold, requestStatusLabel } from '@/types'
 
 type Tab = 'sin-asignar' | 'mias' | 'transporte' | 'todas'
 
@@ -378,10 +378,10 @@ async function save() {
         <div class="wide"><dt>Personas</dt><dd>{{ formatHousehold(selected) }} ({{ selected.peopleCount }})</dd></div>
         <div><dt>Transporte propio</dt><dd>{{ yesNo(selected.hasOwnTransport) }}</dd></div>
         <div><dt>Tallas bebé</dt><dd>{{ dash(selected.babySizes) }}</dd></div>
-        <div><dt>Tallas niña</dt><dd>{{ dash(formatClothingSizes(selected.girlShirtSizes, selected.girlPantsSizes)) }}</dd></div>
-        <div><dt>Tallas mujer</dt><dd>{{ dash(formatClothingSizes(selected.womanShirtSizes, selected.womanPantsSizes)) }}</dd></div>
-        <div><dt>Tallas niño</dt><dd>{{ dash(formatClothingSizes(selected.boyShirtSizes, selected.boyPantsSizes)) }}</dd></div>
-        <div><dt>Tallas hombre</dt><dd>{{ dash(formatClothingSizes(selected.manShirtSizes, selected.manPantsSizes)) }}</dd></div>
+        <div><dt>Tallas niña</dt><dd>{{ dash(selected.girlShirtSizes) }}</dd></div>
+        <div><dt>Tallas mujer</dt><dd>{{ dash(selected.womanShirtSizes) }}</dd></div>
+        <div><dt>Tallas niño</dt><dd>{{ dash(selected.boyShirtSizes) }}</dd></div>
+        <div><dt>Tallas hombre</dt><dd>{{ dash(selected.manShirtSizes) }}</dd></div>
         <div><dt>Ropa interior</dt><dd>{{ dash(selected.underwearNeeds) }}</dd></div>
         <div><dt>Sábanas, cobijas y toallas</dt><dd>{{ yesNo(selected.needsLinens) }}</dd></div>
         <div><dt>Pañales</dt><dd>{{ yesNo(selected.needsDiapers) }}</dd></div>
