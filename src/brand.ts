@@ -1,3 +1,1 @@
-import brandLogo from '@/assets/logo.svg'
-
-export { brandLogo }
+export const brandLogo = '/ENTRETEGIDO.png'

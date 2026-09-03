@@ -79,11 +79,10 @@ onMounted(async () => {
 .hero-logo {
   /* En móvil encabeza el bloque y ocupa poco alto. */
   order: -1;
-  width: min(220px, 60vw);
+  width: min(240px, 64vw);
   aspect-ratio: 1;
-  /* Recorte circular del propio emblema: sin borde añadido ni marco rectangular. */
-  object-fit: cover;
-  border-radius: 50%;
+  object-fit: contain;
+  background: transparent;
   justify-self: center;
 }
 

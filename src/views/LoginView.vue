@@ -79,10 +79,10 @@ async function submit() {
 }
 
 .logo {
-  width: 120px;
+  width: 140px;
   aspect-ratio: 1;
-  object-fit: cover;
-  border-radius: 50%;
+  object-fit: contain;
+  background: transparent;
   justify-self: center;
 }
 

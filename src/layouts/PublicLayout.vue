@@ -111,11 +111,10 @@ watch(
 }
 
 .mark {
-  width: 2.6rem;
-  height: 2.6rem;
-  /* Recorte circular del emblema, sin borde que duplique su aro. */
-  object-fit: cover;
-  border-radius: 50%;
+  width: 3.1rem;
+  height: 3.1rem;
+  object-fit: contain;
+  background: transparent;
 }
 
 .menu-btn {
