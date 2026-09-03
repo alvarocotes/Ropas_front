@@ -108,6 +108,8 @@ const peopleCount = computed(
     asCount(form.babiesCount),
 )
 
+const currentStep = computed(() => STEPS.find((item) => item.id === step.value) ?? STEPS[0])
+
 function onDiapersChange() {
   if (form.needsDiapers === 'no') {
     form.diaperStages = []
@@ -268,7 +270,7 @@ async function submit() {
         <span class="title">{{ item.title }}</span>
       </li>
     </ol>
-    <p class="step-label">Paso {{ step }} de {{ STEPS.length }}: {{ STEPS[step - 1].title }}</p>
+    <p class="step-label">Paso {{ currentStep.id }} de {{ STEPS.length }}: {{ currentStep.title }}</p>
 
     <form class="card form" @submit.prevent="submit">
       <fieldset v-if="step === 1">
