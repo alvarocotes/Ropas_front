@@ -33,6 +33,15 @@ const stockMove = ref<{
 } | null>(null)
 const search = ref('')
 const onlyLow = ref(false)
+const audienceFilter = ref<ClothingAudience | 'all'>('all')
+const audienceFilters: { id: ClothingAudience | 'all'; label: string }[] = [
+  { id: 'all', label: 'Todos' },
+  { id: 'woman', label: clothingAudienceLabel.woman },
+  { id: 'man', label: clothingAudienceLabel.man },
+  { id: 'boy', label: clothingAudienceLabel.boy },
+  { id: 'girl', label: clothingAudienceLabel.girl },
+  { id: 'baby', label: clothingAudienceLabel.baby },
+]
 const editingId = ref<number | null>(null)
 const editForm = reactive({
   name: '',
@@ -50,8 +59,9 @@ const filteredProducts = computed(() => {
   const term = search.value.trim().toLowerCase()
   return products.value.filter((product) => {
     if (onlyLow.value && !isLow(product)) return false
+    if (audienceFilter.value !== 'all' && product.audience !== audienceFilter.value) return false
     if (!term) return true
-    return `${product.name} ${product.unit}`.toLowerCase().includes(term)
+    return `${product.name} ${product.unit} ${product.requestLabel ?? ''} ${product.sizeLabel ?? ''}`.toLowerCase().includes(term)
   })
 })
 
@@ -439,13 +449,25 @@ function isLow(product: Product) {
         </label>
         <small class="count">{{ filteredProducts.length }} de {{ products.length }}</small>
       </div>
+      <div class="audience-filters" role="group" aria-label="Filtrar por para quién">
+        <button
+          v-for="item in audienceFilters"
+          :key="item.id"
+          class="chip"
+          type="button"
+          :class="{ active: audienceFilter === item.id }"
+          @click="audienceFilter = item.id"
+        >
+          {{ item.label }}
+        </button>
+      </div>
     </div>
 
     <div v-if="products.length === 0" class="card empty">
       Todavía no hay productos. Pulsa <strong>Nuevo producto</strong> para crear el primero.
     </div>
     <div v-else-if="filteredProducts.length === 0" class="card empty">
-      Ningún producto coincide con la búsqueda.
+      Ningún producto coincide con la búsqueda o el filtro.
     </div>
     <div v-else class="stock-grid">
       <article
@@ -550,6 +572,31 @@ h1 { font-size: clamp(1.6rem, 7vw, 2.2rem); }
   gap: 0.7rem;
   flex-wrap: wrap;
   margin-top: 0.7rem;
+}
+
+.audience-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.7rem;
+}
+
+.chip {
+  min-height: 40px;
+  padding: 0.35rem 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: white;
+  color: var(--ink);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.chip.active {
+  border-color: var(--terracotta);
+  background: var(--terracotta);
+  color: #fff;
+  font-weight: 700;
 }
 
 .search {

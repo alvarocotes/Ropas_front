@@ -14,6 +14,13 @@ const DIAPER_STAGES = [
   'Etapa 6',
 ]
 
+const STEPS = [
+  { id: 1, title: 'Tus datos' },
+  { id: 2, title: 'Quiénes necesitan' },
+  { id: 3, title: 'Tallas' },
+  { id: 4, title: 'Otros insumos' },
+] as const
+
 const emptySizes = (): ClothingSizes => ({
   woman: [],
   man: [],
@@ -52,23 +59,12 @@ const emptyForm = () => ({
   additionalNeeds: '',
 })
 
-const STEPS = [
-  { title: 'Contacto', hint: 'Cómo te localizamos' },
-  { title: 'Residencia', hint: 'Dónde enviar la ayuda' },
-  { title: 'Personas', hint: 'Quiénes necesitan ropa' },
-  { title: 'Tallas', hint: 'Ropa por grupo' },
-  { title: 'Insumos', hint: 'Pañales, sábanas y más' },
-] as const
-
-const LAST_STEP = STEPS.length
-
 const form = reactive(emptyForm())
 const catalog = ref<ClothingSizes>(emptySizes())
 const sending = ref(false)
 const ok = ref(false)
 const error = ref('')
 const step = ref(1)
-const formEl = ref<HTMLFormElement | null>(null)
 
 const sizeGroups: {
   count: () => number
@@ -166,61 +162,59 @@ function hasCatalogSizes(key: ClothingAudience) {
   return catalog.value[key].length > 0
 }
 
-function currentStepValid() {
-  return Boolean(formEl.value?.reportValidity())
-}
-
-function validateStep(n: number) {
-  error.value = ''
-  if (n <= 3 && !currentStepValid()) return false
-  if (n === 3 && peopleCount.value < 1) {
-    error.value = 'Indica cuántas mujeres, hombres, niñas, niños y bebés necesitan ropa.'
-    return false
-  }
-  if (n === 5 && form.needsDiapers === 'si' && form.diaperStages.length === 0) {
-    error.value = 'Elige la etapa de pañal que necesitas.'
-    return false
-  }
-  return true
-}
-
-function goTo(n: number) {
-  step.value = n
-  error.value = ''
+function scrollTop() {
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
-function next() {
-  if (!validateStep(step.value)) return
-  if (step.value < LAST_STEP) goTo(step.value + 1)
+function validateStep(current: number): string | null {
+  if (current === 1) {
+    if (form.fullName.trim().length < 2) return 'Escribe tu nombre completo.'
+    if (form.phoneWhatsapp.trim().length < 7) return 'Escribe un celular / WhatsApp válido.'
+    if (form.residenceBefore.trim().length < 3) return 'Indica la residencia de antes del terremoto.'
+    if (form.residenceAfter.trim().length < 3) return 'Indica la residencia o albergue actual.'
+  }
+  if (current === 2) {
+    if (!form.affectationType) return 'Elige el tipo de afectación.'
+    if (peopleCount.value < 1) {
+      return 'Indica cuántas mujeres, hombres, niñas, niños y bebés necesitan ropa.'
+    }
+  }
+  if (current === 4 && form.needsDiapers === 'si' && form.diaperStages.length === 0) {
+    return 'Elige la etapa de pañal que necesitas.'
+  }
+  return null
 }
 
-function back() {
-  if (step.value > 1) goTo(step.value - 1)
-}
-
-function onFormSubmit() {
-  if (step.value < LAST_STEP) {
-    next()
+function goNext() {
+  const message = validateStep(step.value)
+  if (message) {
+    error.value = message
     return
   }
-  void submit()
+  error.value = ''
+  if (step.value < STEPS.length) {
+    step.value += 1
+    scrollTop()
+  }
+}
+
+function goBack() {
+  error.value = ''
+  if (step.value > 1) {
+    step.value -= 1
+    scrollTop()
+  }
 }
 
 async function submit() {
+  const lastCheck = validateStep(4)
+  if (lastCheck) {
+    error.value = lastCheck
+    return
+  }
   sending.value = true
   error.value = ''
   ok.value = false
-  if (peopleCount.value < 1) {
-    error.value = 'Indica cuántas mujeres, hombres, niñas, niños y bebés necesitan ropa.'
-    sending.value = false
-    return
-  }
-  if (form.needsDiapers === 'si' && form.diaperStages.length === 0) {
-    error.value = 'Elige la etapa de pañal que necesitas.'
-    sending.value = false
-    return
-  }
   try {
     await api.post('/help-requests', {
       fullName: form.fullName,
@@ -251,7 +245,7 @@ async function submit() {
     ok.value = true
     Object.assign(form, emptyForm())
     step.value = 1
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    scrollTop()
   } catch (err) {
     error.value = apiErrorMessage(err, 'No se pudo enviar la solicitud')
   } finally {
@@ -264,61 +258,52 @@ async function submit() {
   <section class="page">
     <h1>Solicitar ropa y ayuda</h1>
     <p>
-      Completa este formulario si necesitas donaciones de ropa u otros insumos. A la dirección
-      posterior al terremoto enviaremos los paquetes. Son {{ LAST_STEP }} pasos cortos.
+      Completa este formulario si necesitas donaciones de ropa u otros insumos. Va por pasos para
+      que no se haga tan largo. A la dirección posterior al terremoto enviaremos los paquetes.
     </p>
 
-    <nav class="progress" aria-label="Progreso del formulario">
-      <ol>
-        <li
-          v-for="(item, i) in STEPS"
-          :key="item.title"
-          :class="{ current: step === i + 1, done: step > i + 1 }"
-        >
-          <span class="dot">{{ i + 1 }}</span>
-          <span class="label">{{ item.title }}</span>
-        </li>
-      </ol>
-      <p class="progress-caption">
-        Paso {{ step }} de {{ LAST_STEP }} · {{ STEPS[step - 1].hint }}
-      </p>
-    </nav>
+    <ol class="progress" aria-label="Pasos del formulario">
+      <li v-for="item in STEPS" :key="item.id" :class="{ current: step === item.id, done: step > item.id }">
+        <span class="num">{{ item.id }}</span>
+        <span class="title">{{ item.title }}</span>
+      </li>
+    </ol>
+    <p class="step-label">Paso {{ step }} de {{ STEPS.length }}: {{ STEPS[step - 1].title }}</p>
 
-    <form class="card form" ref="formEl" @submit.prevent="onFormSubmit">
+    <form class="card form" @submit.prevent="submit">
       <fieldset v-if="step === 1">
         <legend>Datos de contacto</legend>
         <label class="field">
           <span>Nombre completo</span>
-          <input v-model="form.fullName" required minlength="2" autocomplete="name" />
+          <input v-model="form.fullName" minlength="2" autocomplete="name" />
         </label>
         <label class="field">
           <span>Celular / WhatsApp</span>
-          <input v-model="form.phoneWhatsapp" required minlength="7" type="tel" autocomplete="tel" />
+          <input v-model="form.phoneWhatsapp" minlength="7" type="tel" autocomplete="tel" />
         </label>
       </fieldset>
 
-      <fieldset v-if="step === 2">
+      <fieldset v-if="step === 1">
         <legend>Residencia</legend>
         <label class="field">
           <span>Lugar de residencia (antes del terremoto)</span>
-          <input v-model="form.residenceBefore" required minlength="3" />
+          <input v-model="form.residenceBefore" minlength="3" />
         </label>
         <label class="field">
           <span>Lugar de residencia o albergue (después del terremoto)</span>
           <input
             v-model="form.residenceAfter"
-            required
             minlength="3"
             placeholder="A esta dirección enviaríamos los paquetes de ropa"
           />
         </label>
       </fieldset>
 
-      <fieldset v-if="step === 3">
+      <fieldset v-if="step === 2">
         <legend>Afectación y alcance</legend>
         <label class="field">
           <span>Tipo de afectación sufrida</span>
-          <select v-model="form.affectationType" required>
+          <select v-model="form.affectationType">
             <option value="" disabled>Selecciona una opción</option>
             <option>Vivienda destruida</option>
             <option>Vivienda inhabitables o dañada</option>
@@ -331,7 +316,7 @@ async function submit() {
         </label>
         <label class="field">
           <span>¿Necesitas ropa sólo para tu núcleo familiar o también para tu comunidad?</span>
-          <select v-model="form.clothingScope" required>
+          <select v-model="form.clothingScope">
             <option value="familiar">Sólo para mi núcleo familiar</option>
             <option value="comunidad">También para mi comunidad</option>
           </select>
@@ -340,36 +325,36 @@ async function submit() {
         <div class="people-grid">
           <label class="field">
             <span>Mujeres adultas</span>
-            <input v-model.number="form.womenCount" type="number" min="0" max="200" required />
+            <input v-model.number="form.womenCount" type="number" min="0" max="200" />
           </label>
           <label class="field">
             <span>Hombres adultos</span>
-            <input v-model.number="form.menCount" type="number" min="0" max="200" required />
+            <input v-model.number="form.menCount" type="number" min="0" max="200" />
           </label>
           <label class="field">
             <span>Niñas</span>
-            <input v-model.number="form.girlsCount" type="number" min="0" max="200" required />
+            <input v-model.number="form.girlsCount" type="number" min="0" max="200" />
           </label>
           <label class="field">
             <span>Niños</span>
-            <input v-model.number="form.boysCount" type="number" min="0" max="200" required />
+            <input v-model.number="form.boysCount" type="number" min="0" max="200" />
           </label>
           <label class="field">
             <span>Bebés</span>
-            <input v-model.number="form.babiesCount" type="number" min="0" max="200" required />
+            <input v-model.number="form.babiesCount" type="number" min="0" max="200" />
           </label>
         </div>
         <p class="total">Total: {{ peopleCount }} persona{{ peopleCount === 1 ? '' : 's' }}</p>
         <label class="field">
           <span>¿Tiene transporte propio para recoger la ropa?</span>
-          <select v-model="form.hasOwnTransport" required>
+          <select v-model="form.hasOwnTransport">
             <option value="no">No</option>
             <option value="si">Sí</option>
           </select>
         </label>
       </fieldset>
 
-      <fieldset v-if="step === 4">
+      <fieldset v-if="step === 3">
         <legend>Tallas de ropa</legend>
         <p class="hint">
           En cada talla indica para cuántas personas es. Los títulos (blusa, camisa, inferior…)
@@ -425,7 +410,7 @@ async function submit() {
         </label>
       </fieldset>
 
-      <fieldset v-if="step === 5">
+      <fieldset v-if="step === 4">
         <legend>Otros insumos</legend>
         <label class="field">
           <span>¿Necesitas sábanas, cobijas y toallas?</span>
@@ -472,18 +457,13 @@ async function submit() {
       </fieldset>
 
       <p v-if="error" class="flash flash-error">{{ error }}</p>
-      <p v-if="ok" class="flash flash-ok">Solicitud recibida. Un voluntario la tomará en proceso.</p>
-      <div class="wizard-nav">
-        <button
-          class="btn btn-ghost"
-          type="button"
-          :disabled="step === 1 || sending"
-          @click="back"
-        >
-          Atrás
-        </button>
-        <button v-if="step < LAST_STEP" class="btn btn-primary" type="submit">
-          Siguiente
+      <p v-if="ok && step === 1" class="flash flash-ok">
+        Solicitud recibida. Un voluntario la tomará en proceso.
+      </p>
+      <div class="step-nav">
+        <button v-if="step > 1" class="btn btn-ghost" type="button" @click="goBack">Atrás</button>
+        <button v-if="step < STEPS.length" class="btn btn-primary" type="button" @click="goNext">
+          Continuar
         </button>
         <button v-else class="btn btn-primary" type="submit" :disabled="sending">
           {{ sending ? 'Enviando...' : 'Enviar solicitud' }}
@@ -506,78 +486,64 @@ h1 {
 }
 
 .progress {
-  margin: 1.2rem 0 0;
-}
-
-.progress ol {
   list-style: none;
-  margin: 0;
+  margin: 1.2rem 0 0.4rem;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 0.35rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.4rem;
 }
 
 .progress li {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.3rem;
-  text-align: center;
+  display: grid;
+  justify-items: center;
+  gap: 0.35rem;
   color: var(--ink-soft);
-  font-size: 0.72rem;
-  font-weight: 600;
+  text-align: center;
 }
 
-.progress .dot {
+.progress .num {
   width: 1.85rem;
   height: 1.85rem;
   border-radius: 999px;
+  border: 1px solid var(--line);
   display: grid;
   place-items: center;
-  border: 2px solid var(--line);
-  background: #fff;
+  font-weight: 700;
   font-size: 0.85rem;
+  background: #fff;
 }
 
-.progress li.done .dot,
-.progress li.current .dot {
+.progress .title {
+  font-size: 0.72rem;
+  line-height: 1.2;
+}
+
+.progress li.current {
+  color: var(--ink);
+}
+
+.progress li.current .num {
   border-color: var(--terracotta);
   background: var(--terracotta);
   color: #fff;
 }
 
-.progress li.current .label {
-  color: var(--ink);
+.progress li.done .num {
+  border-color: var(--terracotta);
+  background: color-mix(in srgb, var(--terracotta) 18%, white);
 }
 
-.progress-caption {
-  margin: 0.7rem 0 0;
-  color: var(--ink-soft);
-  font-size: 0.92rem;
-}
-
-@media (max-width: 560px) {
-  .progress .label {
-    display: none;
-  }
+.step-label {
+  font-weight: 600;
+  margin: 0 0 0.2rem;
 }
 
 .form {
-  margin-top: 1.1rem;
+  margin-top: 1.4rem;
   padding: 1.1rem;
   display: grid;
   gap: 1.2rem;
-}
-
-.wizard-nav {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.7rem;
-}
-
-.wizard-nav .btn-primary {
-  justify-self: stretch;
 }
 
 fieldset {
@@ -666,5 +632,18 @@ legend {
 .total {
   font-weight: 600;
   margin: 0;
+}
+
+.step-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  justify-content: flex-end;
+}
+
+@media (max-width: 560px) {
+  .progress .title {
+    display: none;
+  }
 }
 </style>
