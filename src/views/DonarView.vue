@@ -64,8 +64,8 @@ async function submit() {
   <section class="page">
     <h1>Registrar una donación</h1>
     <p>
-      Deja tu nombre, un contacto y qué vas a entregar. El equipo te escribirá para coordinar y
-      luego ingresará los productos al inventario.
+      Deja tu nombre, un contacto y qué ropa u otros insumos vas a entregar en Pereira. El equipo te
+      escribirá para coordinar y luego ingresará los productos al inventario.
     </p>
 
     <div v-if="needs.length" class="hints">

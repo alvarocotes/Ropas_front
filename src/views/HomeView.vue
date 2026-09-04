@@ -27,11 +27,12 @@ onMounted(async () => {
   <section class="hero">
     <div class="hero-text">
       <p class="eyebrow">Comité de Abrigo</p>
-      <h1>Organizar la ayuda, de la donación a la entrega.</h1>
+      <h1>Donar ropa en Pereira</h1>
       <p class="script">Dona con amor, abriga con esperanza.</p>
       <p class="lead">
-        Entretejidos centraliza voluntarios, inventario y solicitudes para que cada prenda llegue a
-        quien la necesita.
+        Entretejidos, Comité de Abrigo, organiza donaciones de ropa en Pereira, Risaralda, para que
+        cada prenda llegue a quien la necesita. Puedes registrar una donación, pedir ayuda o
+        participar como voluntario.
       </p>
       <div class="actions">
         <RouterLink to="/donar" class="btn btn-primary">Registrar una donación</RouterLink>
@@ -44,7 +45,15 @@ onMounted(async () => {
         <span>voluntarios activos</span>
       </div>
     </div>
-    <img :src="brandLogo" alt="Logo de Entretejidos" class="hero-logo" />
+    <img
+      :src="brandLogo"
+      alt="Logo de Entretejidos, Comité de Abrigo"
+      class="hero-logo"
+      width="320"
+      height="320"
+      fetchpriority="high"
+      decoding="async"
+    />
   </section>
 
   <section class="needs">
@@ -111,7 +120,7 @@ onMounted(async () => {
 
 h1 {
   font-size: clamp(1.85rem, 9vw, 4.2rem);
-  max-width: 14ch;
+  max-width: 18ch;
   margin: 0.6rem 0 1rem;
 }
 

@@ -23,8 +23,8 @@ onMounted(async () => {
   <section class="page">
     <h1>Qué se necesita ahora</h1>
     <p>
-      Esta lista orienta a quienes quieren donar. Si puedes cubrir alguno de estos ítems,
-      regístralo en el formulario de donación.
+      Esta lista orienta a quienes quieren donar ropa en Pereira. Si puedes cubrir alguno de estos
+      ítems, regístralo en el formulario de donación.
     </p>
     <p v-if="loading">Cargando...</p>
     <div v-else-if="needs.length === 0" class="card empty">No hay necesidades visibles en este momento.</div>

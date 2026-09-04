@@ -10,7 +10,7 @@ export default defineConfig(({ mode }) => {
   const backendUrl = env.VITE_API_URL || 'http://localhost:3000'
 
   return {
-    plugins: [vue(), vueDevTools()],
+    plugins: [vue(), ...(mode === 'development' ? [vueDevTools()] : [])],
     resolve: {
       alias: {
         '@': fileURLToPath(new URL('./src', import.meta.url)),

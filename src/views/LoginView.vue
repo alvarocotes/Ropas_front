@@ -34,7 +34,14 @@ async function submit() {
 <template>
   <div class="screen">
     <form class="card box" @submit.prevent="submit">
-      <img :src="brandLogo" alt="Logo de Entretejidos" class="logo" />
+      <img
+        :src="brandLogo"
+        alt="Logo de Entretejidos, Comité de Abrigo"
+        class="logo"
+        width="140"
+        height="140"
+        decoding="async"
+      />
       <p class="eyebrow">Acceso interno</p>
       <h1>Entrar a Entretejidos</h1>
       <p class="hint">Solo voluntarios y el administrador del sistema.</p>

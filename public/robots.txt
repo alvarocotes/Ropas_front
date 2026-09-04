@@ -1,4 +1,18 @@
 User-agent: *
 Allow: /
 
+Disallow: /login
+Disallow: /panel
+Disallow: /inventario
+Disallow: /movimientos
+Disallow: /solicitudes
+Disallow: /donaciones
+Disallow: /necesidades-admin
+Disallow: /contenido
+Disallow: /voluntarios-tiempo
+Disallow: /bitacora
+Disallow: /horario
+Disallow: /perfil
+Disallow: /usuarios
+
 Sitemap: https://ropas-front.vercel.app/sitemap.xml

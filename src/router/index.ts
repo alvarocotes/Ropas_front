@@ -1,4 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { applySeoForPath } from '@/composables/useSeo'
+import { HOME_DESCRIPTION, HOME_TITLE } from '@/seo'
 import { useAuthStore } from '@/stores/auth'
 
 const router = createRouter({
@@ -11,31 +13,97 @@ const router = createRouter({
       path: '/',
       component: () => import('@/layouts/PublicLayout.vue'),
       children: [
-        { path: '', name: 'home', component: () => import('@/views/HomeView.vue') },
+        {
+          path: '',
+          name: 'home',
+          component: () => import('@/views/HomeView.vue'),
+          meta: {
+            seo: {
+              title: HOME_TITLE,
+              description: HOME_DESCRIPTION,
+              breadcrumbName: 'Inicio',
+            },
+          },
+        },
         {
           path: 'nosotros',
           name: 'nosotros',
           component: () => import('@/views/NosotrosView.vue'),
+          meta: {
+            seo: {
+              title: 'Quiénes somos | Entretejidos – Comité de Abrigo Pereira',
+              description:
+                'Conoce a Entretejidos, Comité de Abrigo en Pereira, Risaralda. Organizamos donaciones de ropa y entregas a familias que necesitan abrigo.',
+              breadcrumbName: 'Quiénes somos',
+            },
+          },
         },
         {
           path: 'necesidades',
           name: 'necesidades',
           component: () => import('@/views/NecesidadesView.vue'),
+          meta: {
+            seo: {
+              title: 'Qué se necesita para donar ropa en Pereira | Entretejidos',
+              description:
+                'Consulta qué ropa e insumos se necesitan ahora en Pereira. Entretejidos, Comité de Abrigo, orienta las donaciones hacia lo más urgente.',
+              breadcrumbName: 'Necesidades',
+            },
+          },
         },
         {
           path: 'solicitar-ayuda',
           name: 'solicitar-ayuda',
           component: () => import('@/views/SolicitarAyudaView.vue'),
+          meta: {
+            seo: {
+              title: 'Solicitar ropa y ayuda en Pereira | Entretejidos',
+              description:
+                'Solicita donaciones de ropa y otros insumos en Pereira. Completa el formulario de Entretejidos, Comité de Abrigo, y un voluntario tomará tu pedido.',
+              breadcrumbName: 'Pedir ayuda',
+            },
+          },
         },
-        { path: 'donar', name: 'donar', component: () => import('@/views/DonarView.vue') },
+        {
+          path: 'donar',
+          name: 'donar',
+          component: () => import('@/views/DonarView.vue'),
+          meta: {
+            seo: {
+              title: 'Registrar una donación de ropa en Pereira | Entretejidos',
+              description:
+                'Registra una donación de ropa en Pereira. Deja tu contacto y lo que vas a entregar; Entretejidos, Comité de Abrigo, coordina la recepción.',
+              breadcrumbName: 'Donar',
+            },
+          },
+        },
         {
           path: 'ayudar',
           name: 'ayudar',
           component: () => import('@/views/AyudarView.vue'),
+          meta: {
+            seo: {
+              title: 'Voluntariado en Pereira | Entretejidos',
+              description:
+                'Haz parte como voluntario en Pereira: ayuda en la sede o con transporte de ropa. Entretejidos, Comité de Abrigo, coordina horarios y entregas.',
+              breadcrumbName: 'Hacer parte',
+            },
+          },
         },
       ],
     },
-    { path: '/login', name: 'login', component: () => import('@/views/LoginView.vue') },
+    {
+      path: '/login',
+      name: 'login',
+      component: () => import('@/views/LoginView.vue'),
+      meta: {
+        seo: {
+          title: 'Acceso interno | Entretejidos',
+          description: 'Entrada para voluntarios y el administrador de Entretejidos, Comité de Abrigo.',
+          robots: 'noindex, nofollow',
+        },
+      },
+    },
     {
       path: '/',
       component: () => import('@/layouts/PrivateLayout.vue'),
@@ -108,6 +176,25 @@ const router = createRouter({
         },
       ],
     },
+    {
+      path: '/:pathMatch(.*)*',
+      name: 'not-found',
+      component: () => import('@/layouts/PublicLayout.vue'),
+      children: [
+        {
+          path: '',
+          name: 'not-found-page',
+          component: () => import('@/views/NotFoundView.vue'),
+          meta: {
+            seo: {
+              title: 'Página no encontrada | Entretejidos',
+              description: 'Esta dirección no existe en el sitio de Entretejidos, Comité de Abrigo.',
+              robots: 'noindex, nofollow',
+            },
+          },
+        },
+      ],
+    },
   ],
 })
 
@@ -139,6 +226,10 @@ router.beforeEach(async (to) => {
     return { name: 'panel' }
   }
   return true
+})
+
+router.afterEach((to) => {
+  applySeoForPath(to.meta, to.path)
 })
 
 export default router

@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, defineAsyncComponent, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import api from '@/api/client'
-import ImpactMap from '@/components/ImpactMap.vue'
 import type { AboutSection, Impact } from '@/types'
+
+const ImpactMap = defineAsyncComponent(() => import('@/components/ImpactMap.vue'))
 
 const sections = ref<AboutSection[]>([])
 const impact = ref<Impact | null>(null)
@@ -48,8 +49,8 @@ onMounted(async () => {
       <h1>Quiénes somos</h1>
       <p class="script">Dona con amor, abriga con esperanza.</p>
       <p>
-        Entretejidos es un esfuerzo colectivo para que ninguna familia afectada por el sismo pase la
-        noche sin abrigo.
+        Entretejidos es un esfuerzo colectivo en Pereira, Risaralda, para que ninguna familia
+        afectada por el sismo pase la noche sin abrigo.
       </p>
     </header>
 
@@ -102,7 +103,7 @@ onMounted(async () => {
 
     <section class="cta card">
       <h2>¿Quieres sumarte?</h2>
-      <p>Puedes aportar donaciones o consultar qué se necesita ahora mismo.</p>
+      <p>Puedes aportar donaciones de ropa en Pereira o consultar qué se necesita ahora mismo.</p>
       <div class="cta-actions">
         <RouterLink class="btn btn-primary" to="/donar">Registrar una donación</RouterLink>
         <RouterLink class="btn btn-ghost" to="/necesidades">Ver necesidades</RouterLink>

@@ -1,10 +1,13 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, onUnmounted, ref, watch } from 'vue'
 import { RouterLink, RouterView, useRoute } from 'vue-router'
 import { brandLogo } from '@/brand'
+import { usePublicJsonLd } from '@/composables/useSeo'
 
 const route = useRoute()
 const menuOpen = ref(false)
+const jsonLd = usePublicJsonLd()
+const jsonLdText = computed(() => JSON.stringify(jsonLd.value))
 
 watch(
   () => route.fullPath,
@@ -12,13 +15,40 @@ watch(
     menuOpen.value = false
   },
 )
+
+watch(
+  jsonLdText,
+  (text) => {
+    let el = document.getElementById('json-ld-public') as HTMLScriptElement | null
+    if (!el) {
+      el = document.createElement('script')
+      el.id = 'json-ld-public'
+      el.type = 'application/ld+json'
+      document.head.appendChild(el)
+    }
+    el.textContent = text
+  },
+  { immediate: true },
+)
+
+onUnmounted(() => {
+  document.getElementById('json-ld-public')?.remove()
+})
 </script>
 
 <template>
   <div class="public">
+    <a class="skip" href="#contenido">Saltar al contenido</a>
     <header class="top">
       <RouterLink to="/" class="brand">
-        <img :src="brandLogo" alt="Logo de Entretejidos" class="mark" />
+        <img
+          :src="brandLogo"
+          alt="Logo de Entretejidos, Comité de Abrigo"
+          class="mark"
+          width="50"
+          height="50"
+          decoding="async"
+        />
         <span class="brand-text">
           Entretejidos
           <small>Comité de Abrigo</small>
@@ -41,16 +71,25 @@ watch(
         <RouterLink to="/solicitar-ayuda">Pedir ayuda</RouterLink>
         <RouterLink to="/ayudar">Hacer parte</RouterLink>
         <RouterLink to="/donar" class="btn btn-primary donate">Donar</RouterLink>
-        <RouterLink to="/login" class="login">Entrar</RouterLink>
+        <RouterLink to="/login" class="login" rel="nofollow">Entrar</RouterLink>
       </nav>
     </header>
-    <main>
+    <main id="contenido">
       <RouterView />
     </main>
     <footer>
       <div class="weave-strip footer-strip" aria-hidden="true"></div>
       <p class="script">Dona con amor, abriga con esperanza.</p>
-      <p>Entretejidos · Comité de Abrigo · gestión de voluntarios, donaciones e inventario.</p>
+      <p>
+        Entretejidos · Comité de Abrigo · Pereira, Risaralda, Colombia. Donación de ropa y apoyo a
+        familias que necesitan abrigo.
+      </p>
+      <nav class="footer-nav" aria-label="Enlaces del pie">
+        <RouterLink to="/donar">Donar ropa</RouterLink>
+        <RouterLink to="/solicitar-ayuda">Pedir ayuda</RouterLink>
+        <RouterLink to="/ayudar">Voluntariado</RouterLink>
+        <RouterLink to="/nosotros">Quiénes somos</RouterLink>
+      </nav>
     </footer>
   </div>
 </template>
@@ -60,6 +99,21 @@ watch(
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+}
+
+.skip {
+  position: absolute;
+  left: 0.75rem;
+  top: -4rem;
+  z-index: 30;
+  padding: 0.5rem 0.9rem;
+  background: var(--navy);
+  color: #fff;
+  border-radius: 8px;
+}
+
+.skip:focus {
+  top: 0.75rem;
 }
 
 .top {
@@ -166,7 +220,7 @@ watch(
   transform: rotate(-45deg);
 }
 
-nav {
+#public-nav {
   display: none;
   flex-direction: column;
   gap: 0.45rem;
@@ -176,11 +230,11 @@ nav {
   padding-bottom: 0.4rem;
 }
 
-nav.open {
+#public-nav.open {
   display: flex;
 }
 
-nav a {
+#public-nav a {
   min-height: 44px;
   display: flex;
   align-items: center;
@@ -213,13 +267,28 @@ footer {
   width: min(420px, 80%);
 }
 
+.footer-nav {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.65rem 1rem;
+  font-weight: 600;
+}
+
+.footer-nav a {
+  color: var(--navy);
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+
 @media (min-width: 760px) {
   .menu-btn {
     display: none;
   }
 
-  nav,
-  nav.open {
+  #public-nav,
+  #public-nav.open {
     display: flex;
     flex-direction: row;
     align-items: center;
@@ -228,7 +297,7 @@ footer {
     padding-bottom: 0;
   }
 
-  nav a {
+  #public-nav a {
     min-height: auto;
     padding: 0;
   }

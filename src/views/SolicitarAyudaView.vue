@@ -260,8 +260,9 @@ async function submit() {
   <section class="page">
     <h1>Solicitar ropa y ayuda</h1>
     <p>
-      Completa este formulario si necesitas donaciones de ropa u otros insumos. Va por pasos para
-      que no se haga tan largo. A la dirección posterior al terremoto enviaremos los paquetes.
+      Completa este formulario si necesitas donaciones de ropa u otros insumos en Pereira. Va por
+      pasos para que no se haga tan largo. A la dirección posterior al terremoto enviaremos los
+      paquetes.
     </p>
 
     <ol class="progress" aria-label="Pasos del formulario">

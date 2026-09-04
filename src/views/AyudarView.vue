@@ -118,8 +118,8 @@ async function submit() {
   <section class="page">
     <h1>Hacer parte</h1>
     <p>
-      Puedes ayudar en la sede (alistar paquetes, recibir donaciones) o con transporte (llevar y
-      recoger ropa). Elige cómo quieres participar y déjanos tus datos.
+      Puedes ayudar en Pereira en la sede (alistar paquetes, recibir donaciones) o con transporte
+      (llevar y recoger ropa). Elige cómo quieres participar y déjanos tus datos.
     </p>
 
     <form class="card form" @submit.prevent="submit">

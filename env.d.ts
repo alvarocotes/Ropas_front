@@ -24,5 +24,11 @@ declare module 'vue-router' {
       | 'content'
       | 'time_volunteers'
       | 'shift_log'
+    seo?: {
+      title: string
+      description: string
+      robots?: string
+      breadcrumbName?: string
+    }
   }
 }

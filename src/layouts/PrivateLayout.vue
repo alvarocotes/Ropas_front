@@ -18,7 +18,7 @@ function logout() {
     <aside>
       <div class="bar">
         <RouterLink to="/panel" class="brand">
-          <img :src="brandLogo" alt="Logo de Entretejidos" class="mark" />
+          <img :src="brandLogo" alt="Logo de Entretejidos, Comité de Abrigo" class="mark" width="50" height="50" decoding="async" />
           <span class="brand-text">
             Entretejidos
             <small>Comité de Abrigo</small>
