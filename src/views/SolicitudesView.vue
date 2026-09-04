@@ -9,6 +9,16 @@ import type { HelpRequest, Product, RequestStatus } from '@/types'
 import { formatHousehold, requestStatusLabel } from '@/types'
 
 type Tab = 'sin-asignar' | 'mias' | 'transporte' | 'todas'
+type StatusFilter = RequestStatus | 'todos'
+
+const STATUS_FILTERS: { id: StatusFilter; label: string }[] = [
+  { id: 'todos', label: 'Todos los estados' },
+  { id: 'recibido', label: requestStatusLabel.recibido },
+  { id: 'en_proceso', label: requestStatusLabel.en_proceso },
+  { id: 'listo', label: requestStatusLabel.listo },
+  { id: 'entregado', label: requestStatusLabel.entregado },
+  { id: 'cancelado', label: requestStatusLabel.cancelado },
+]
 
 const auth = useAuthStore()
 
@@ -27,6 +37,7 @@ const itemBusy = ref(false)
 const isReception = computed(() => auth.isReception)
 const isAdmin = computed(() => auth.isAdmin)
 const tab = ref<Tab>(auth.isReception ? 'transporte' : 'sin-asignar')
+const statusFilter = ref<StatusFilter>('todos')
 
 const tabs: { id: Tab; label: string }[] = isReception.value
   ? [
@@ -58,20 +69,28 @@ const needsPackage = computed(() => {
 
 const visibleRequests = computed(() => {
   const me = auth.user?.id
+  let list: HelpRequest[]
   switch (tab.value) {
     case 'sin-asignar':
-      return requests.value.filter(
+      list = requests.value.filter(
         (item) => !item.assignedToId && item.status !== 'entregado' && item.status !== 'cancelado',
       )
+      break
     case 'mias':
-      return requests.value.filter((item) =>
+      list = requests.value.filter((item) =>
         isReception.value ? item.receptionUserId === me : item.assignedToId === me,
       )
+      break
     case 'transporte':
-      return requests.value.filter((item) => item.status === 'listo')
+      list = requests.value.filter((item) => item.status === 'listo')
+      break
     default:
-      return requests.value
+      list = requests.value
   }
+  if (statusFilter.value !== 'todos') {
+    list = list.filter((item) => item.status === statusFilter.value)
+  }
+  return list
 })
 
 function yesNo(value: boolean) {
@@ -274,7 +293,7 @@ async function save() {
     </p>
     <p v-if="error && !selected" class="flash flash-error">{{ error }}</p>
 
-    <div class="tabs">
+    <div class="tabs" role="tablist" aria-label="Vista de solicitudes">
       <button
         v-for="item in tabs"
         :key="item.id"
@@ -282,6 +301,18 @@ async function save() {
         :class="{ active: tab === item.id }"
         type="button"
         @click="tab = item.id"
+      >
+        {{ item.label }}
+      </button>
+    </div>
+    <div class="tabs status-tabs" role="group" aria-label="Filtrar por estado">
+      <button
+        v-for="item in STATUS_FILTERS"
+        :key="item.id"
+        class="tab"
+        :class="{ active: statusFilter === item.id }"
+        type="button"
+        @click="statusFilter = item.id"
       >
         {{ item.label }}
       </button>
@@ -345,7 +376,7 @@ async function save() {
             </td>
           </tr>
           <tr v-if="!visibleRequests.length">
-            <td colspan="7" class="muted">No hay solicitudes en esta vista.</td>
+            <td colspan="7" class="muted">No hay solicitudes en esta vista o con ese estado.</td>
           </tr>
         </tbody>
       </table>
@@ -545,6 +576,7 @@ h1 { font-size: clamp(1.6rem, 7vw, 2.2rem); }
   scrollbar-width: none;
 }
 .tabs::-webkit-scrollbar { display: none; }
+.status-tabs { margin-top: 0.45rem; }
 .tab {
   flex: 0 0 auto;
   border: 1px solid var(--line);
